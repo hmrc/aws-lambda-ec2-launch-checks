@@ -32,9 +32,9 @@ publish: ## Push lambdas zip to S3
 
 	# ec2_launch_checks_get_instance_ip lambda
 	@aws s3 cp build/artifacts/ec2_launch_checks_get_instance_ip.zip s3://${S3_BUCKET_NAME}/ec2_launch_checks_get_instance_ip.zip --acl=bucket-owner-full-control
-	@aws s3 cp build/artifacts/ec2_launch_checks_get_instance_ip.zip s3://${S3_BUCKET_NAME}/ec2_launch_checks_get_instance_ip.zip.base64sha256 --content-type text/plain --acl=bucket-owner-full-control
+	@aws s3 cp build/artifacts/ec2_launch_checks_get_instance_ip.zip.base64sha256 s3://${S3_BUCKET_NAME}/ec2_launch_checks_get_instance_ip.zip.base64sha256 --content-type text/plain --acl=bucket-owner-full-control
 
 	# ec2_launch_checks_health_checks lambda
 	@aws s3 cp build/artifacts/ec2_launch_checks_health_checks.zip s3://${S3_BUCKET_NAME}/ec2_launch_checks_health_checks.zip --acl=bucket-owner-full-control
-	@aws s3 cp build/artifacts/ec2_launch_checks_health_checks.zip s3://${S3_BUCKET_NAME}/ec2_launch_checks_health_checks.zip.base64sha256 --content-type text/plain --acl=bucket-owner-full-control
+	@aws s3 cp build/artifacts/ec2_launch_checks_health_checks.zip.base64sha256 s3://${S3_BUCKET_NAME}/ec2_launch_checks_health_checks.zip.base64sha256 --content-type text/plain --acl=bucket-owner-full-control
 .PHONY: publish
