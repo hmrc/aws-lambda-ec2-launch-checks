@@ -1,0 +1,50 @@
+#!/usr/bin/env python
+import json
+import boto3
+
+
+def lambda_handler(event, context):
+    print("lambda_handler entered")
+    try:
+        print(context)
+    except AttributeError:
+        print(f"No context object available")
+
+    try:
+        print(json.dumps(event))
+        life_cycle_hook = event.get("lifecycle_hook_name")
+        auto_scaling_group = event.get("asg_name")
+        instance_id = event.get("ec2_instance_id")
+
+        client = boto3.client("autoscaling")
+        client.complete_lifecycle_action(
+            LifecycleHookName=life_cycle_hook,
+            AutoScalingGroupName=auto_scaling_group,
+            LifecycleActionResult="CONTINUE",
+            InstanceId=instance_id,
+        )
+
+    except AttributeError:
+        print(f"Unable to find ec2/asg details in event")
+
+    return "RETURN"
+
+
+# import requests
+
+# def get_instance_ip(instance_id: str) -> str:
+#     ec2 = boto3.client("ec2")
+#     response = ec2.describe_instances(InstanceIds=[instance_id])
+#     return response["Reservations"][0]["Instances"][0]["PrivateIpAddress"]
+
+#     # stepfunction:
+#     # get_instance_ip -> [ip address] -> health_check
+#     asg_specific_endpoint = "healthz"
+#
+#     event["ip_address"] = get_instance_ip(event["detail"]["EC2InstanceId"])
+#
+#     endpoint_call = requests.get(f"https://{event['detail']['ip_address']}:9999/{asg_specific_endpoint}")
+#     event["response_code"] = endpoint_call.status_code
+#
+#     if endpoint_call.status_code == 200:
+#         raise RuntimeError(f"health check endpoint for {event['detail']['ip_address']} did not return 200")

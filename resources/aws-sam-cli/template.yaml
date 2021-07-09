@@ -1,0 +1,11 @@
+Transform: AWS::Serverless-2016-10-31
+
+Resources:
+  Ec2LaunchChecks:
+    Type: AWS::Lambda::Function
+    Properties:
+      Code: ../../src
+      FunctionName: ec2-launch-checks
+      Handler: handler.lambda_handler
+      Role: Ec2LaunchChecksRole
+      Runtime: python3.8
