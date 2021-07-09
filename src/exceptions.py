@@ -1,0 +1,2 @@
+class FailedToCompleteLifecycleActionException(Exception):
+    pass

@@ -1,7 +1,7 @@
 import pytest
 from src.handler import *
 from aws_lambda_context import LambdaContext
-from unittest.mock import patch
+from unittest.mock import patch, Mock
 
 
 @patch("boto3.client")
@@ -19,6 +19,23 @@ def test_that_the_lambda_handler_succeeds_with_context(
         InstanceId=asg_event.get("ec2_instance_id"),
     )
     assert response == "RETURN"
+
+
+@patch("boto3.client")
+def test_that_the_lambda_handler_catches_attribute_error(
+    mock_boto_client, asg_event, context
+):
+    # Arrange
+    # mock_boto_client.complete_lifecycle_action.side_effect = AttributeError
+    mock_boto_client.complete_lifecycle_action.side_effect = Mock(
+        side_effect=Exception("AttributeError")
+    )
+    # Act
+    with pytest.raises(AttributeError):
+        response = lambda_handler(event=asg_event, context=context)
+
+    # Assert
+    assert response == "FAILURE"
 
 
 @pytest.fixture(scope="function")
