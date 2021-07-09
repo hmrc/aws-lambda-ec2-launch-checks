@@ -1,7 +1,7 @@
 [tool.poetry]
 name = "aws-lambda-ec2-launch-checks"
 version = "0.0.0"
-description = ""
+description = "An AWS Lambda that will check Goss endpoint when triggered by ASG instance launch"
 authors = ["Paul Marsh <61422343+PTMGitHub@users.noreply.github.com>"]
 maintainers = ["Team Telemetry"]
 license = "Apache 2.0"

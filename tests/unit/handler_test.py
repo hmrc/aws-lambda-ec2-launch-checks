@@ -1,38 +1,87 @@
-from src import handler
-from unittest import TestCase
-from unittest.mock import MagicMock
+import pytest
+from src.handler import *
+from aws_lambda_context import LambdaContext
 from unittest.mock import patch
 
-# from handler import lambda_handler
+
+@patch("boto3.client")
+def test_that_the_lambda_handler_succeeds_with_context(
+    mock_boto_client, asg_event, context
+):
+    # Arrange/Act
+    response = lambda_handler(event=asg_event, context=context)
+
+    # Assert
+    mock_boto_client().complete_lifecycle_action.assert_called_once_with(
+        LifecycleHookName=asg_event.get("lifecycle_hook_name"),
+        AutoScalingGroupName=asg_event.get("asg_name"),
+        LifecycleActionResult="CONTINUE",
+        InstanceId=asg_event.get("ec2_instance_id"),
+    )
+    assert response == "RETURN"
 
 
-class ContinueStepFunction(TestCase):
-    def test_continues(self):
-        auto_scaling_group_name = "mock_asg"
-        instance_id = "mock_ec2_instance"
-        lifecycle_hook_name = "hook_name"
-        action = "CONTINUE"
+@pytest.fixture(scope="function")
+def asg_event():
+    return {
+        "ec2_instance_id": "i-0123a456700123456",
+        "asg_name": "mock_asg",
+        "lifecycle_hook_name": "hook_name",
+    }
 
-        with patch("src.handler.boto3") as mock_boto3:
-            mock_client = MagicMock()
-            mock_boto3.client.return_value = mock_client
 
-            event = {
-                "ec2_instance_id": instance_id,
-                "asg_name": auto_scaling_group_name,
-                "lifecycle_hook_name": lifecycle_hook_name,
-            }
+@pytest.fixture(scope="function")
+def context():
+    lambda_context = LambdaContext()
+    lambda_context.function_name = "lambda_handler"
+    lambda_context.aws_request_id = "abc-123"
+    return lambda_context
 
-            context = {"aws_request_id": "request_id"}
 
-            handler.lambda_handler(event=event, context=context)
+@pytest.fixture(autouse=True)
+def initialise_environment_variables():
+    os.environ["LOG_LEVEL"] = "DEBUG"
 
-            mock_client.complete_lifecycle_action.assert_called_with(
-                LifecycleHookName=lifecycle_hook_name,
-                AutoScalingGroupName=auto_scaling_group_name,
-                LifecycleActionResult=action,
-                InstanceId=instance_id,
-            )
+
+@pytest.fixture(scope="function")
+def aws_credentials():
+    """Mocked AWS Credentials for moto."""
+    os.environ["AWS_ACCESS_KEY_ID"] = "testing"
+    os.environ["AWS_SECRET_ACCESS_KEY"] = "testing"
+    os.environ["AWS_SECURITY_TOKEN"] = "testing"
+    os.environ["AWS_SESSION_TOKEN"] = "testing"
+    os.environ["AWS_REGION"] = "eu-west-2"
+    os.environ["AWS_DEFAULT_REGION"] = "eu-west-2"
+
+
+####
+# class ContinueStepFunction(TestCase):
+#     def test_continues(self):
+#         auto_scaling_group_name = "mock_asg"
+#         instance_id = "mock_ec2_instance"
+#         lifecycle_hook_name = "hook_name"
+#         action = "CONTINUE"
+#
+#         with patch("src.handler.boto3") as mock_boto3:
+#             mock_client = MagicMock()
+#             mock_boto3.client.return_value = mock_client
+#
+#             event = {
+#                 "ec2_instance_id": instance_id,
+#                 "asg_name": auto_scaling_group_name,
+#                 "lifecycle_hook_name": lifecycle_hook_name,
+#             }
+#
+#             context = {"aws_request_id": "request_id"}
+#
+#             handler.lambda_handler(event=event, context=context)
+#
+#             mock_client.complete_lifecycle_action.assert_called_with(
+#                 LifecycleHookName=lifecycle_hook_name,
+#                 AutoScalingGroupName=auto_scaling_group_name,
+#                 LifecycleActionResult=action,
+#                 InstanceId=instance_id,
+#             )
 
 
 # BELOW IS DONE WITH UNIT TEST

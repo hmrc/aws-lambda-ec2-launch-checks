@@ -1,17 +1,23 @@
 #!/usr/bin/env python
 import json
 import boto3
+import os
+from aws_lambda_powertools import Logger
+
+logger = Logger(
+    service="aws-lambda-ec2-launch-checks",
+    level=os.environ.get("LOG_LEVEL", "INFO"),
+)
 
 
 def lambda_handler(event, context):
-    print("lambda_handler entered")
     try:
-        print(context)
+        logger.info(f"Lambda Request ID: {context.aws_request_id}")
     except AttributeError:
-        print(f"No context object available")
+        logger.debug(f"No context object available")
 
     try:
-        print(json.dumps(event))
+        logger.debug(json.dumps(event))
         life_cycle_hook = event.get("lifecycle_hook_name")
         auto_scaling_group = event.get("asg_name")
         instance_id = event.get("ec2_instance_id")
@@ -25,7 +31,7 @@ def lambda_handler(event, context):
         )
 
     except AttributeError:
-        print(f"Unable to find ec2/asg details in event")
+        logger.error(f"Unable to find ec2/asg details in event")
 
     return "RETURN"
 
