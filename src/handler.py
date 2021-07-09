@@ -3,7 +3,7 @@ import json
 import boto3
 import os
 from aws_lambda_powertools import Logger
-from exceptions import FailedToCompleteLifecycleActionException
+from src.exceptions import FailedToCompleteLifecycleActionException
 
 logger = Logger(
     service="aws-lambda-ec2-launch-checks",

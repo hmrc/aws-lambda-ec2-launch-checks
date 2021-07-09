@@ -1,5 +1,8 @@
 import pytest
-from src.handler import *
+import os
+
+from src.handler import lambda_handler
+from src.exceptions import FailedToCompleteLifecycleActionException
 from aws_lambda_context import LambdaContext
 from unittest.mock import patch, Mock
 
@@ -21,21 +24,29 @@ def test_that_the_lambda_handler_succeeds_with_context(
     assert response == "RETURN"
 
 
-@patch("boto3.client")
+def test_api(asg_event, context):
+    # boto_error = FailedToCompleteLifecycleActionException("Boo")
+    # mock_client = Mock(**{"complete_lifecycle_action.side_effect": boto_error})
+    # mock_boto_client.complete_lifecycle_action.side_effect = FailedToCompleteLifecycleActionException('Boom!')
+    with patch('boto3.client.complete_lifecycle_action', side_effect=Exception):
+        with pytest.raises(Exception) as exception_info:
+            response = lambda_handler(event=asg_event, context=context)
+
+    assert "Caught exception when completing lifecycle action: Boom!" in str(exception_info.value)
+
+
+@patch("src.handler.boto3.client")
 def test_that_the_lambda_handler_catches_attribute_error(
     mock_boto_client, asg_event, context
 ):
     # Arrange
-    # mock_boto_client.complete_lifecycle_action.side_effect = AttributeError
-    mock_boto_client.complete_lifecycle_action.side_effect = Mock(
-        side_effect=Exception("AttributeError")
-    )
-    # Act
-    with pytest.raises(AttributeError):
+    mock_boto_client.complete_lifecycle_action.side_effect = FailedToCompleteLifecycleActionException('Boom!')
+    # with patch('boto3.client.complete_lifecycle_action', side_effect=FailedToCompleteLifecycleActionException('mocked error')):
+    with pytest.raises(FailedToCompleteLifecycleActionException) as exception_info:
         response = lambda_handler(event=asg_event, context=context)
 
     # Assert
-    assert response == "FAILURE"
+    assert "Caught exception when completing lifecycle action: Boom!" in str(exception_info.value)
 
 
 @pytest.fixture(scope="function")
