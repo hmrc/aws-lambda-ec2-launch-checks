@@ -28,25 +28,30 @@ def test_api(asg_event, context):
     # boto_error = FailedToCompleteLifecycleActionException("Boo")
     # mock_client = Mock(**{"complete_lifecycle_action.side_effect": boto_error})
     # mock_boto_client.complete_lifecycle_action.side_effect = FailedToCompleteLifecycleActionException('Boom!')
-    with patch('boto3.client.complete_lifecycle_action', side_effect=Exception):
+    with patch("boto3.client.complete_lifecycle_action", side_effect=Exception):
         with pytest.raises(Exception) as exception_info:
             response = lambda_handler(event=asg_event, context=context)
 
-    assert "Caught exception when completing lifecycle action: Boom!" in str(exception_info.value)
+    assert "Caught exception when completing lifecycle action: Boom!" in str(
+        exception_info.value
+    )
 
 
 @patch("src.handler.boto3.client")
-def test_that_the_lambda_handler_catches_attribute_error(
+def test_that_the_lambda_handler_catches_custom_error(
     mock_boto_client, asg_event, context
 ):
     # Arrange
-    mock_boto_client.complete_lifecycle_action.side_effect = FailedToCompleteLifecycleActionException('Boom!')
-    # with patch('boto3.client.complete_lifecycle_action', side_effect=FailedToCompleteLifecycleActionException('mocked error')):
+    mock_boto_client.side_effect = FailedToCompleteLifecycleActionException("Boom!")
+
     with pytest.raises(FailedToCompleteLifecycleActionException) as exception_info:
         response = lambda_handler(event=asg_event, context=context)
 
-    # Assert
-    assert "Caught exception when completing lifecycle action: Boom!" in str(exception_info.value)
+        # Assert
+        assert "Caught exception when completing lifecycle action: Boom!" in str(
+            exception_info.value
+        )
+        assert response != "RETURN"
 
 
 @pytest.fixture(scope="function")
