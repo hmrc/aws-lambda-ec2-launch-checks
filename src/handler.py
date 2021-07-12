@@ -3,7 +3,12 @@ import boto3
 import json
 import os
 from aws_lambda_powertools import Logger
-from src.exceptions import FailedToCompleteLifecycleActionException
+from src.exceptions import (
+    FailedToCompleteLifecycleActionException,
+    FailedToLoadContextException,
+    FailedToLoadEventException,
+    MissingEventParamsException,
+)
 
 logger = Logger(
     service="aws-lambda-ec2-launch-checks",
@@ -23,16 +28,21 @@ def lambda_handler(event, context):
 
     try:
         logger.info(f"Lambda Request ID: {context.aws_request_id}")
-    except AttributeError:
-        logger.debug(f"No context object available")
+    except AttributeError as e:
+        raise FailedToLoadContextException(f"No context object available") from e
 
     try:
         logger.debug(json.dumps(event))
         auto_scaling_group_name = event.get("asg_name")
         instance_id = event.get("ec2_instance_id")
         lifecycle_hook_name = event.get("lifecycle_hook_name")
-    except AttributeError:
-        print(f"Unable to find ec2/asg details in event")
+
+        if not all([auto_scaling_group_name, instance_id, lifecycle_hook_name]):
+            raise MissingEventParamsException(f"Bad event object: {json.dumps(event)}")
+    except AttributeError as e:
+        raise FailedToLoadEventException(
+            f"Unexpected error parsing event: {json.dumps(event)}"
+        ) from e
 
     try:
         response = autoscaling_client.complete_lifecycle_action(
@@ -42,9 +52,9 @@ def lambda_handler(event, context):
             LifecycleHookName=lifecycle_hook_name,
         )
     except Exception as e:
-        message = f"Caught exception when completing lifecycle action: {e}"
-        logger.error(message)
-        raise FailedToCompleteLifecycleActionException(message)
+        raise FailedToCompleteLifecycleActionException(
+            f"Caught exception when completing lifecycle action"
+        ) from e
 
     return response
 

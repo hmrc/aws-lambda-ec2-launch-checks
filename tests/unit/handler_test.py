@@ -4,7 +4,12 @@ import os
 from botocore.stub import Stubber
 from src.handler import lambda_handler
 from src.handler import autoscaling_client
-from src.exceptions import FailedToCompleteLifecycleActionException
+from src.exceptions import (
+    FailedToCompleteLifecycleActionException,
+    FailedToLoadContextException,
+    FailedToLoadEventException,
+    MissingEventParamsException,
+)
 from aws_lambda_context import LambdaContext
 
 
@@ -21,6 +26,16 @@ def asg_event():
         "ec2_instance_id": "i-0123a456700123456",
         "asg_name": "mock_asg",
         "lifecycle_hook_name": "hook_name",
+    }
+
+
+@pytest.fixture(scope="function")
+def valid_parameters():
+    return {
+        "AutoScalingGroupName": "mock_asg",
+        "InstanceId": "i-0123a456700123456",
+        "LifecycleActionResult": "CONTINUE",
+        "LifecycleHookName": "hook_name",
     }
 
 
@@ -49,16 +64,9 @@ def aws_credentials():
 
 
 def test_that_the_lambda_handler_succeeds_with_context_stubber(
-    autoscaling_stub, asg_event, context
+    autoscaling_stub, asg_event, context, valid_parameters
 ):
     # Arrange. complete_lifecycle_action has an empty response so we've tested the ResponseMetadata
-    complete_lifecycle_action_expected_params = {
-        "AutoScalingGroupName": "mock_asg",
-        "InstanceId": "i-0123a456700123456",
-        "LifecycleActionResult": "CONTINUE",
-        "LifecycleHookName": "hook_name",
-    }
-
     autoscaling_complete_lifecycle_action_valid = {
         "ResponseMetadata": {
             "HTTPHeaders": {
@@ -76,7 +84,7 @@ def test_that_the_lambda_handler_succeeds_with_context_stubber(
     autoscaling_stub.activate()
     autoscaling_stub.add_response(
         "complete_lifecycle_action",
-        expected_params=complete_lifecycle_action_expected_params,
+        expected_params=valid_parameters,
         service_response=autoscaling_complete_lifecycle_action_valid,
     )
 
@@ -92,3 +100,69 @@ def test_that_the_lambda_handler_succeeds_with_context_stubber(
 # we have a the instance ip - mocked
 # we get a 200 when hitting the goss endpoint - mocked
 # handler exit 1 if we dont get  200 return form the goss endpoint
+
+
+def test_that_the_lambda_handler_catches_complete_lifecycle_action_exception(
+    autoscaling_stub, asg_event, context, valid_parameters
+):
+    # Arrange
+
+    # Set up service error code
+    service_error_code_expected = "ResourceContention"
+
+    autoscaling_stub.activate()
+    autoscaling_stub.add_client_error(
+        "complete_lifecycle_action",
+        expected_params=valid_parameters,
+        service_error_code=service_error_code_expected,
+    )
+
+    # Act with raising the error
+    with pytest.raises(FailedToCompleteLifecycleActionException) as error_message:
+        response = lambda_handler(asg_event, context)
+
+    # Assert. do we get the error message we want.
+    assert "Caught exception when completing lifecycle action" in str(
+        error_message.value
+    )
+
+
+def test_that_the_lambda_handler_catches_no_context_error(
+    autoscaling_stub, asg_event, context
+):
+    # Arrange. complete_lifecycle_action has an empty response so we've tested the ResponseMetadata
+    # Act with raising the error
+    with pytest.raises(FailedToLoadContextException) as error_message:
+        response = lambda_handler(asg_event, None)
+
+    # Assert. do we get the error message we want.
+    assert "No context object available" in str(error_message.value)
+
+
+def test_that_the_lambda_handler_catches_bad_event_error(
+    autoscaling_stub, asg_event, context
+):
+    # Arrange.  Bad event data
+    bad_event = {
+        "asg_name": "mock_asg",
+        "lifecycle_hook_name": "hook_name",
+    }
+    # Act with raising the error
+    with pytest.raises(MissingEventParamsException) as error_message:
+        response = lambda_handler(bad_event, context)
+
+    # Assert. do we get the error message we want.
+    assert "Bad event object:" in str(error_message.value)
+
+
+def test_that_the_lambda_handler_catches_none_event_error(
+    autoscaling_stub, asg_event, context
+):
+    # Arrange.  Bad event data
+
+    # Act with raising the error
+    with pytest.raises(FailedToLoadEventException) as error_message:
+        lambda_handler(None, context)
+
+    # Assert. do we get the error message we want.
+    assert "Unexpected error parsing event:" in str(error_message.value)
