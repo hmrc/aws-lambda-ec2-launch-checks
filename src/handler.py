@@ -1,6 +1,6 @@
 #!/usr/bin/env python
-import json
 import boto3
+import json
 import os
 from aws_lambda_powertools import Logger
 from src.exceptions import FailedToCompleteLifecycleActionException
@@ -16,6 +16,11 @@ autoscaling_client = boto3.client(
 
 
 def lambda_handler(event, context):
+    auto_scaling_group_name = ""
+    instance_id = ""
+    lifecycle_action_result = "CONTINUE"
+    lifecycle_hook_name = ""
+
     try:
         logger.info(f"Lambda Request ID: {context.aws_request_id}")
     except AttributeError:
@@ -23,18 +28,18 @@ def lambda_handler(event, context):
 
     try:
         logger.debug(json.dumps(event))
-        life_cycle_hook = event.get("lifecycle_hook_name")
-        auto_scaling_group = event.get("asg_name")
+        auto_scaling_group_name = event.get("asg_name")
         instance_id = event.get("ec2_instance_id")
+        lifecycle_hook_name = event.get("lifecycle_hook_name")
     except AttributeError:
         print(f"Unable to find ec2/asg details in event")
 
     try:
         response = autoscaling_client.complete_lifecycle_action(
-            LifecycleHookName=life_cycle_hook,
-            AutoScalingGroupName=auto_scaling_group,
-            LifecycleActionResult="CONTINUE",
+            AutoScalingGroupName=auto_scaling_group_name,
             InstanceId=instance_id,
+            LifecycleActionResult=lifecycle_action_result,
+            LifecycleHookName=lifecycle_hook_name,
         )
     except Exception as e:
         message = f"Caught exception when completing lifecycle action: {e}"
