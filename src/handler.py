@@ -10,6 +10,10 @@ logger = Logger(
     level=os.environ.get("LOG_LEVEL", "INFO"),
 )
 
+autoscaling_client = boto3.client(
+    "autoscaling", region_name=os.environ.get("AWS_REGION", "eu-west-2")
+)
+
 
 def lambda_handler(event, context):
     try:
@@ -26,8 +30,7 @@ def lambda_handler(event, context):
         print(f"Unable to find ec2/asg details in event")
 
     try:
-        client = boto3.client("autoscaling")
-        client.complete_lifecycle_action(
+        response = autoscaling_client.complete_lifecycle_action(
             LifecycleHookName=life_cycle_hook,
             AutoScalingGroupName=auto_scaling_group,
             LifecycleActionResult="CONTINUE",
@@ -38,7 +41,7 @@ def lambda_handler(event, context):
         logger.error(message)
         raise FailedToCompleteLifecycleActionException(message)
 
-    return "RETURN"
+    return response
 
 
 # import requests
