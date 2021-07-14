@@ -2,13 +2,34 @@
 import boto3
 import json
 import os
+import logging
 from aws_lambda_powertools import Logger
-from src.exceptions import (
-    FailedToCompleteLifecycleActionException,
-    FailedToLoadContextException,
-    FailedToLoadEventException,
-    MissingEventParamsException,
-)
+
+# from src.exceptions import (
+#     FailedToCompleteLifecycleActionException,
+#     FailedToLoadContextException,
+#     FailedToLoadEventException,
+#     MissingEventParamsException,
+# )
+
+boto3.set_stream_logger(name="boto3", level=logging.DEBUG)
+
+
+class FailedToCompleteLifecycleActionException(Exception):
+    pass
+
+
+class FailedToLoadContextException(Exception):
+    pass
+
+
+class FailedToLoadEventException(Exception):
+    pass
+
+
+class MissingEventParamsException(Exception):
+    pass
+
 
 logger = Logger(
     service="aws-lambda-ec2-launch-checks",
@@ -21,6 +42,7 @@ autoscaling_client = boto3.client(
 
 
 def lambda_handler(event, context):
+    logger.info(f"Inside lambda_handler. event:{json.dumps(event)}")
     auto_scaling_group_name = ""
     instance_id = ""
     lifecycle_action_result = "CONTINUE"
@@ -32,10 +54,12 @@ def lambda_handler(event, context):
         raise FailedToLoadContextException(f"No context object available") from e
 
     try:
-        logger.debug(json.dumps(event))
-        auto_scaling_group_name = event.get("asg_name")
-        instance_id = event.get("ec2_instance_id")
-        lifecycle_hook_name = event.get("lifecycle_hook_name")
+        logger.info(json.dumps(event))
+        payload = event.get("Payload")
+        logger.info(f"payload: {payload}")
+        auto_scaling_group_name = payload.get("asg_name")
+        instance_id = payload.get("ec2_instance_id")
+        lifecycle_hook_name = payload.get("lifecycle_hook_name")
 
         if not all([auto_scaling_group_name, instance_id, lifecycle_hook_name]):
             raise MissingEventParamsException(f"Bad event object: {json.dumps(event)}")
@@ -45,6 +69,15 @@ def lambda_handler(event, context):
         ) from e
 
     try:
+        # this is directing interacting with the asg. Should it instead return the LifecycleActionResult to
+        # the stepfunction and the stepfuction pass that to the asg
+        logger.info(
+            f"auto_scaling_group_name:{auto_scaling_group_name}, "
+            f"auto_scaling_group_name: {auto_scaling_group_name}, "
+            f"instance_id@ {instance_id},"
+            f"lifecycle_action_result:{lifecycle_action_result}, "
+            f"lifecycle_hook_name:{lifecycle_hook_name}"
+        )
         response = autoscaling_client.complete_lifecycle_action(
             AutoScalingGroupName=auto_scaling_group_name,
             InstanceId=instance_id,
@@ -52,11 +85,13 @@ def lambda_handler(event, context):
             LifecycleHookName=lifecycle_hook_name,
         )
     except Exception as e:
+        logger.error(e)
         raise FailedToCompleteLifecycleActionException(
             f"Caught exception when completing lifecycle action"
         ) from e
 
     return response
+    # return True
 
 
 # import requests
