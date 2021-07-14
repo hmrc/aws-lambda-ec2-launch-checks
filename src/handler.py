@@ -51,7 +51,9 @@ def lambda_handler(event, context):
     try:
         logger.info(f"Lambda Request ID: {context.aws_request_id}")
     except AttributeError as e:
-        raise FailedToLoadContextException(f"No context object available") from e
+        logger.error(e)
+        # Disabling the throwing of exceptions as we don't want the instance to terminate (yet)
+        # raise FailedToLoadContextException(f"No context object available") from e
 
     try:
         logger.info(json.dumps(event))
@@ -64,9 +66,11 @@ def lambda_handler(event, context):
         if not all([auto_scaling_group_name, instance_id, lifecycle_hook_name]):
             raise MissingEventParamsException(f"Bad event object: {json.dumps(event)}")
     except AttributeError as e:
-        raise FailedToLoadEventException(
-            f"Unexpected error parsing event: {json.dumps(event)}"
-        ) from e
+        logger.error(e)
+        # Disabling the throwing of exceptions as we don't want the instance to terminate (yet)
+        # raise FailedToLoadEventException(
+        #     f"Unexpected error parsing event: {json.dumps(event)}"
+        # ) from e
 
     try:
         # this is directing interacting with the asg. Should it instead return the LifecycleActionResult to
@@ -86,9 +90,10 @@ def lambda_handler(event, context):
         )
     except Exception as e:
         logger.error(e)
-        raise FailedToCompleteLifecycleActionException(
-            f"Caught exception when completing lifecycle action"
-        ) from e
+        # Disabling the throwing of exceptions as we don't want the instance to terminate (yet)
+        # raise FailedToCompleteLifecycleActionException(
+        #     f"Caught exception when completing lifecycle action"
+        # ) from e
 
     return response
     # return True
