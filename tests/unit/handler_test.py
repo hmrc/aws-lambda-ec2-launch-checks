@@ -4,7 +4,9 @@ import os
 from botocore.stub import Stubber
 from src.handler import lambda_handler
 from src.handler import autoscaling_client
-from src.exceptions import (
+from src.handler import ec2_client
+from src.handler import get_instance_ip
+from src.handler import (
     FailedToCompleteLifecycleActionException,
     FailedToLoadContextException,
     FailedToLoadEventException,
@@ -18,6 +20,29 @@ def autoscaling_stub():
     with Stubber(autoscaling_client) as stubber:
         yield stubber
         stubber.assert_no_pending_responses()
+
+
+@pytest.fixture(autouse=True)
+def ec2_stub():
+    with Stubber(ec2_client) as stubber:
+        yield stubber
+        stubber.assert_no_pending_responses()
+
+
+@pytest.fixture(scope="function")
+def ec2_response():
+    return {
+        "Reservations": [
+            {
+                "Instances": [
+                    {
+                        "InstanceId": "mock-instance-id",
+                        "PrivateIpAddress": "mock-ip-address",
+                    }
+                ]
+            }
+        ]
+    }
 
 
 @pytest.fixture(scope="function")
@@ -166,3 +191,21 @@ def test_that_the_lambda_handler_catches_none_event_error(
 
     # Assert. do we get the error message we want.
     assert "Unexpected error parsing event:" in str(error_message.value)
+
+
+def test_get_instance_ip(ec2_stub, ec2_response):
+
+    # Arrange. complete_lifecycle_action has an empty response so we've tested the ResponseMetadata
+
+    ec2_stub.activate()
+    ec2_stub.add_response(
+        "describe_instances",
+        service_response=ec2_response,
+    )
+
+    # Act
+    response = get_instance_ip("mock-instance-id")
+
+    # Assert
+    assert response == "mock-ip-address"
+    ec2_stub.deactivate()
