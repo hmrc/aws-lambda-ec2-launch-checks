@@ -52,7 +52,7 @@ ec2_client = boto3.client("ec2", region_name=os.environ.get("AWS_REGION", "eu-we
 def get_instance_ip(instance_id: str) -> str:
     logger.info(f"get_instance_ip for {instance_id}")
     response = ec2_client.describe_instances(InstanceIds=[instance_id])
-    logger.info(f"response: {response}")
+    logger.info(f"ec2 describe_instances response: {response}")
     try:
         private_ip_address = response["Reservations"][0]["Instances"][0][
             "PrivateIpAddress"
@@ -71,11 +71,11 @@ def lambda_handler(event, context):
     logger.info(f"Inside lambda_handler. event:{json.dumps(event)}")
     auto_scaling_group_name = None
     instance_id = None
-    lifecycle_action_result = "CONTINUE"
+    lifecycle_action_result = "ABANDON"
     lifecycle_hook_name = None
 
     try:
-        logger.info(f"Paul Lambda Request ID: {context.aws_request_id}")
+        logger.info(f"Vitor Lambda Request ID: {context.aws_request_id}")
     except AttributeError as e:
         logger.error(e)
         # Disabling the throwing of exceptions as we don't want the instance to terminate (yet)
@@ -109,8 +109,11 @@ def lambda_handler(event, context):
     logger.info(f"ip_address: {ip_address}")
 
     try:
-        endpoint_call = requests.get(
-            f"https://{ip_address}:9999/{asg_specific_endpoint}"
+        url = f"http://{ip_address}:9999/{asg_specific_endpoint}"
+        logger.info(f"Calling URL {url}")
+        endpoint_call = requests.get(url)
+        logger.info(
+            f"Goss endpoint. Status Code: {endpoint_call.status_code}, Content: {endpoint_call.text}"
         )
 
         if endpoint_call.status_code == 200:
@@ -134,6 +137,7 @@ def lambda_handler(event, context):
             LifecycleActionResult=lifecycle_action_result,
             LifecycleHookName=lifecycle_hook_name,
         )
+        logger.info(f"Response of complete_lifecycle_action: {response}")
     except Exception as e:
         logger.error(e)
         # Disabling the throwing of exceptions as we don't want the instance to terminate (yet)
@@ -141,4 +145,5 @@ def lambda_handler(event, context):
         #     f"Caught exception when completing lifecycle action"
         # ) from e
 
+    logger.info(f"Exiting lambda with return true.")
     return True
