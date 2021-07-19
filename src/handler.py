@@ -17,6 +17,10 @@ from aws_lambda_powertools import Logger
 boto3.set_stream_logger(name="boto3", level=logging.DEBUG)
 
 
+class FailedGossCheckException(Exception):
+    pass
+
+
 class FailedToGetPrivateIpAddressException(Exception):
     pass
 
@@ -69,34 +73,35 @@ def get_instance_ip(instance_id: str) -> str:
 
 def lambda_handler(event, context):
     logger.info(f"Inside lambda_handler. event:{json.dumps(event)}")
-    auto_scaling_group_name = None
-    instance_id = None
-    lifecycle_action_result = "ABANDON"
-    lifecycle_hook_name = None
+    lifecycle_action_result = "CONTINUE"
 
     try:
-        logger.info(f"Vitor Lambda Request ID: {context.aws_request_id}")
+        logger.info(f"Lambda Request ID: {context.aws_request_id}")
     except AttributeError as e:
         logger.error(e)
-        # Disabling the throwing of exceptions as we don't want the instance to terminate (yet)
-        # raise FailedToLoadContextException(f"No context object available") from e
+        raise FailedToLoadContextException(f"No context object available") from e
 
     try:
-        logger.info(json.dumps(event))
-        payload = event.get("Payload")
-        logger.info(f"payload: {payload}")
-        auto_scaling_group_name = payload.get("asg_name")
-        instance_id = payload.get("ec2_instance_id")
-        lifecycle_hook_name = payload.get("lifecycle_hook_name")
+        # All three keys are required and should be present, raise KeyError if any are not supplied.
+        auto_scaling_group_name = event["asg_name"]
+        instance_id = event["ec2_instance_id"]
+        lifecycle_hook_name = event["lifecycle_hook_name"]
 
         if not all([auto_scaling_group_name, instance_id, lifecycle_hook_name]):
-            raise MissingEventParamsException(f"Bad event object: {json.dumps(event)}")
-    except AttributeError as e:
-        logger.error(e)
-        # Disabling the throwing of exceptions as we don't want the instance to terminate (yet)
-        # raise FailedToLoadEventException(
-        #     f"Unexpected error parsing event: {json.dumps(event)}"
-        # ) from e
+            logger.error(f"Empty key in event: {json.dumps(event)}")
+            raise MissingEventParamsException(
+                f"Empty key in event: {json.dumps(event)}"
+            )
+    except KeyError as ke:
+        logger.error(f"Missing key {ke} in event")
+        raise FailedToLoadEventException(
+            f"Missing key {ke} in event: {json.dumps(event)}"
+        ) from ke
+    except TypeError as te:
+        logger.error(te)
+        raise FailedToLoadEventException(
+            f"Incorrect type passed to function: {te}"
+        ) from te
 
     asg_specific_endpoint = "healthz"
     ip_address = None
@@ -116,8 +121,12 @@ def lambda_handler(event, context):
             f"Goss endpoint. Status Code: {endpoint_call.status_code}, Content: {endpoint_call.text}"
         )
 
-        if endpoint_call.status_code == 200:
-            lifecycle_action_result = "CONTINUE"
+        if endpoint_call.status_code != 200:
+            lifecycle_action_result = "ABANDON"
+            raise FailedGossCheckException(
+                f"Goss returned status code: {endpoint_call.status_code}"
+            )
+
     except Exception as e:
         logger.error(e)
 
@@ -140,10 +149,9 @@ def lambda_handler(event, context):
         logger.info(f"Response of complete_lifecycle_action: {response}")
     except Exception as e:
         logger.error(e)
-        # Disabling the throwing of exceptions as we don't want the instance to terminate (yet)
-        # raise FailedToCompleteLifecycleActionException(
-        #     f"Caught exception when completing lifecycle action"
-        # ) from e
+        raise FailedToCompleteLifecycleActionException(
+            f"Caught exception when completing lifecycle action"
+        ) from e
 
     logger.info(f"Exiting lambda with return true.")
     return True

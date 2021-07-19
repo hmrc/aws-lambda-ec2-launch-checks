@@ -9,3 +9,4 @@ Resources:
       Handler: handler.lambda_handler
       Role: Ec2LaunchChecksRole
       Runtime: python3.8
+      Timeout: 300

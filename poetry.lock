@@ -1224,6 +1224,27 @@ url = "https://artefacts.tax.service.gov.uk/artifactory/api/pypi/pips/simple"
 reference = "artifactory"
 
 [[package]]
+name = "requests-mock"
+version = "1.9.3"
+description = "Mock out responses from the requests package"
+category = "dev"
+optional = false
+python-versions = "*"
+
+[package.dependencies]
+requests = ">=2.3,<3"
+six = "*"
+
+[package.extras]
+fixture = ["fixtures"]
+test = ["fixtures", "mock", "purl", "pytest", "sphinx", "testrepository (>=0.0.18)", "testtools"]
+
+[package.source]
+type = "legacy"
+url = "https://artefacts.tax.service.gov.uk/artifactory/api/pypi/pips/simple"
+reference = "artifactory"
+
+[[package]]
 name = "responses"
 version = "0.13.3"
 description = "A utility library for mocking out the `requests` Python library."
@@ -1565,7 +1586,7 @@ reference = "artifactory"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.8"
-content-hash = "6c915e006e22ccd7c2169c88448e6c5acdf4598dc431a2ff69b9e1bf4b3ac571"
+content-hash = "2ae6d7effae7e8b2fa93731a157a7172836fd42e61904a73f7ea2a90e6e3a8a4"
 
 [metadata.files]
 appdirs = [
@@ -2109,6 +2130,10 @@ regex = [
 requests = [
     {file = "requests-2.25.1-py2.py3-none-any.whl", hash = "sha256:c210084e36a42ae6b9219e00e48287def368a26d03a048ddad7bfee44f75871e"},
     {file = "requests-2.25.1.tar.gz", hash = "sha256:27973dd4a904a4f13b263a19c866c13b92a39ed1c964655f025f3f8d3d75b804"},
+]
+requests-mock = [
+    {file = "requests-mock-1.9.3.tar.gz", hash = "sha256:8d72abe54546c1fc9696fa1516672f1031d72a55a1d66c85184f972a24ba0eba"},
+    {file = "requests_mock-1.9.3-py2.py3-none-any.whl", hash = "sha256:0a2d38a117c08bb78939ec163522976ad59a6b7fdd82b709e23bb98004a44970"},
 ]
 responses = [
     {file = "responses-0.13.3-py2.py3-none-any.whl", hash = "sha256:b54067596f331786f5ed094ff21e8d79e6a1c68ef625180a7d34808d6f36c11b"},

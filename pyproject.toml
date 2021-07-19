@@ -30,6 +30,7 @@ taskipy = "^1.4.0"
 version-incrementor = "^0.9.0"
 colorama = "^0.4.4"
 pre-commit = "^2.13.0"
+requests-mock = "^1.9.3"
 
 [tool.taskipy.tasks]
 assemble = "./bin/lambda-tools.sh assemble"
