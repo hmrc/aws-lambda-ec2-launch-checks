@@ -63,9 +63,11 @@ def ec2_response_empty_instances_array():
 @pytest.fixture(scope="function")
 def asg_event():
     return {
-        "ec2_instance_id": "i-0123a456700123456",
-        "asg_name": "mock_asg",
-        "lifecycle_hook_name": "hook_name",
+        "Payload": {
+            "ec2_instance_id": "i-0123a456700123456",
+            "asg_name": "mock_asg",
+            "lifecycle_hook_name": "hook_name",
+        }
     }
 
 
@@ -239,8 +241,10 @@ def test_that_the_lambda_handler_catches_bad_event_error(
 ):
     # Arrange.  Bad event data
     bad_event = {
-        "asg_name": "mock_asg",
-        "lifecycle_hook_name": "hook_name",
+        "Payload": {
+            "asg_name": "mock_asg",
+            "lifecycle_hook_name": "hook_name",
+        }
     }
     # Act with raising the error
     with pytest.raises(FailedToLoadEventException) as error_message:
@@ -271,9 +275,11 @@ def test_that_the_lambda_handler_catches_event_with_empty_key(
 ):
     # Arrange.  Bad event data
     bad_event = {
-        "asg_name": "mock_asg",
-        "ec2_instance_id": "",
-        "lifecycle_hook_name": "hook_name",
+        "Payload": {
+            "asg_name": "mock_asg",
+            "ec2_instance_id": "",
+            "lifecycle_hook_name": "hook_name",
+        }
     }
     # Act with raising the error
     with pytest.raises(MissingEventParamsException) as error_message:
