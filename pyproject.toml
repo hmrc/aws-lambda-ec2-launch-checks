@@ -50,7 +50,7 @@ safety = "safety check"
 start_lambda = "./bin/start-lambda.sh"
 stop_lambda = "./bin/stop-lambda.sh"
 test = "task unittest"
-unittest = "PYTHONPATH='src' pytest tests/unit --cov=src"
+unittest = "PYTHONPATH='src' pytest tests/unit -vvvv --cov=src"
 verify = "task test && task black_check && task safety && task bandit"
 
 

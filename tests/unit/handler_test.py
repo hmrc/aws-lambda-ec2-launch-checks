@@ -1,8 +1,11 @@
 import pytest
 import os
+import requests
 import requests_mock
 
 from botocore.stub import Stubber
+
+import src.handler
 from src.handler import lambda_handler
 from src.handler import autoscaling_client
 from src.handler import ec2_client
@@ -10,6 +13,7 @@ from src.handler import get_instance_ip
 from src.handler import (
     FailedGossCheckException,
     FailedToCompleteLifecycleActionException,
+    FailedToGetPrivateIpAddressException,
     FailedToLoadContextException,
     FailedToLoadEventException,
     MissingEventParamsException,
@@ -52,11 +56,31 @@ def ec2_response():
 
 
 @pytest.fixture(scope="function")
+def ec2_response_empty_instances_array():
+    return {"Reservations": [{"Instances": []}]}
+
+
+@pytest.fixture(scope="function")
 def asg_event():
     return {
         "ec2_instance_id": "i-0123a456700123456",
         "asg_name": "mock_asg",
         "lifecycle_hook_name": "hook_name",
+    }
+
+
+@pytest.fixture(scope="function")
+def ec2_response_with_no_ipaddress():
+    return {
+        "Reservations": [
+            {
+                "Instances": [
+                    {
+                        "InstanceId": "i-0123a456700123456",
+                    }
+                ]
+            }
+        ]
     }
 
 
@@ -153,7 +177,7 @@ def test_that_the_lambda_handler_succeeds_with_context_stubber(
     response = lambda_handler(asg_event, context)
 
     # Assert
-    assert response
+    assert response == "CONTINUE"
 
 
 # we have an lambda handler returning the result - DONE
@@ -190,7 +214,7 @@ def test_that_the_lambda_handler_catches_complete_lifecycle_action_exception(
 
     # Act with raising the error
     with pytest.raises(FailedToCompleteLifecycleActionException) as error_message:
-        response = lambda_handler(asg_event, context)
+        lambda_handler(asg_event, context)
 
     # Assert. do we get the error message we want.
     assert "Caught exception when completing lifecycle action" in str(
@@ -204,7 +228,7 @@ def test_that_the_lambda_handler_catches_no_context_error(
     # Arrange. complete_lifecycle_action has an empty response so we've tested the ResponseMetadata
     # Act with raising the error
     with pytest.raises(FailedToLoadContextException) as error_message:
-        response = lambda_handler(asg_event, None)
+        lambda_handler(asg_event, None)
 
     # Assert. do we get the error message we want.
     assert "No context object available" in str(error_message.value)
@@ -220,7 +244,7 @@ def test_that_the_lambda_handler_catches_bad_event_error(
     }
     # Act with raising the error
     with pytest.raises(FailedToLoadEventException) as error_message:
-        response = lambda_handler(bad_event, context)
+        lambda_handler(bad_event, context)
 
     # Assert. do we get the error message we want.
     assert "Missing key 'ec2_instance_id'" in str(error_message.value)
@@ -253,13 +277,13 @@ def test_that_the_lambda_handler_catches_event_with_empty_key(
     }
     # Act with raising the error
     with pytest.raises(MissingEventParamsException) as error_message:
-        response = lambda_handler(bad_event, context)
+        lambda_handler(bad_event, context)
 
     # Assert. do we get the error message we want.
     assert "Empty key in event:" in str(error_message.value)
 
 
-def test_get_instance_ip(ec2_stub, ec2_response):
+def test_get_instance_ip_valid(ec2_stub, ec2_response):
 
     # Arrange. complete_lifecycle_action has an empty response so we've tested the ResponseMetadata
 
@@ -275,7 +299,67 @@ def test_get_instance_ip(ec2_stub, ec2_response):
     assert response == "10.1.3.1"
 
 
-# If the Goss returns a status code other than 200 then lid
+def test_get_instance_ip_raises_clienterror(
+    ec2_stub, ec2_response_empty_instances_array
+):
+
+    # Arrange. complete_lifecycle_action has an empty response so we've tested the ResponseMetadata
+    ec2_stub.add_client_error(
+        "describe_instances",
+        service_error_code="InvalidInstanceID.NotFound",
+        service_message="The instance ID 'i-0123a456700123456' does not exist",
+        http_status_code=400,
+    )
+
+    # Act
+    with pytest.raises(FailedToGetPrivateIpAddressException) as error_message:
+        get_instance_ip("i-0123a456700123456")
+
+    # Assert.
+    assert "EC2 Clients Describe Instances request failed with" in str(
+        error_message.value
+    )
+
+
+def test_get_instance_ip_with_empty_instance_array(
+    ec2_stub, ec2_response_empty_instances_array
+):
+
+    # Arrange. complete_lifecycle_action has an empty response so we've tested the ResponseMetadata
+    ec2_stub.add_response(
+        "describe_instances",
+        service_response=ec2_response_empty_instances_array,
+    )
+
+    # Act
+    with pytest.raises(FailedToGetPrivateIpAddressException) as error_message:
+        get_instance_ip("i-0123a456700123456")
+
+    # Assert.
+    assert "Instances list index out of range" in str(error_message.value)
+
+
+def test_get_instance_ip_with_empty_instance_array_no_ipaddress(
+    ec2_stub, ec2_response_with_no_ipaddress
+):
+
+    # Arrange. complete_lifecycle_action has an empty response so we've tested the ResponseMetadata
+    ec2_stub.add_response(
+        "describe_instances",
+        service_response=ec2_response_with_no_ipaddress,
+    )
+
+    # Act
+    with pytest.raises(FailedToGetPrivateIpAddressException) as error_message:
+        get_instance_ip("i-0123a456700123456")
+
+    # Assert.
+    assert "PrivateIpAddress field not found in ec2 describe instance response" in str(
+        error_message.value
+    )
+
+
+# If the Goss returns a status code other than 200 then lifecycle_action_result
 def test_goss_does_not_return_200(
     ec2_stub,
     autoscaling_stub,
@@ -300,10 +384,33 @@ def test_goss_does_not_return_200(
 
     requests_mock.get(f"http://10.1.3.1:9999/healthz", status_code=500)
 
-    # Act with raising the error
-    with pytest.raises(FailedGossCheckException) as error_message:
-        response = lambda_handler(asg_event, context)
+    # Act
+    response = lambda_handler(asg_event, context)
 
-    # Assert. Failed Goss exception Raised. response.
-    assert "Goss returned status code:" in str(error_message.value)
-    assert response
+    # Assert
+    assert response == "ABANDON"
+
+
+def test_goss_check_throws_exception(
+    ec2_stub,
+    ec2_response,
+    asg_event,
+    context,
+    requests_mock,
+):
+    # Arrange.
+    ec2_stub.add_response(
+        "describe_instances",
+        service_response=ec2_response,
+    )
+
+    requests_mock.get(
+        f"http://10.1.3.1:9999/healthz", exc=requests.exceptions.ConnectTimeout
+    )
+
+    # Act
+    with pytest.raises(FailedGossCheckException) as error_message:
+        lambda_handler(asg_event, context)
+
+    # Assert. do we get the error message we want.
+    assert "Exception occurred while getting Goss results:" in str(error_message.value)

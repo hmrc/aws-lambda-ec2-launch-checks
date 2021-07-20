@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import boto3
+import botocore
 import json
 import logging
 import os
@@ -54,15 +55,23 @@ ec2_client = boto3.client("ec2", region_name=os.environ.get("AWS_REGION", "eu-we
 
 
 def get_instance_ip(instance_id: str) -> str:
-    logger.info(f"get_instance_ip for {instance_id}")
-    response = ec2_client.describe_instances(InstanceIds=[instance_id])
-    logger.info(f"ec2 describe_instances response: {response}")
+    logger.debug(f"get_instance_ip for {instance_id}")
+    try:
+        response = ec2_client.describe_instances(InstanceIds=[instance_id])
+    except botocore.exceptions.ClientError as e:
+        raise FailedToGetPrivateIpAddressException(
+            f"EC2 Clients Describe Instances request failed with: {e.response['Error']['Message']}"
+        ) from e
+
+    logger.debug(f"ec2 describe_instances response: {response}")
     try:
         private_ip_address = response["Reservations"][0]["Instances"][0][
             "PrivateIpAddress"
         ]
-        if not private_ip_address:
-            raise FailedToGetPrivateIpAddressException(f"PrivateIpAddress empty")
+    except IndexError as e:
+        raise FailedToGetPrivateIpAddressException(
+            f"Instances list index out of range"
+        ) from e
     except KeyError as e:
         raise FailedToGetPrivateIpAddressException(
             f"PrivateIpAddress field not found in ec2 describe instance response"
@@ -104,31 +113,22 @@ def lambda_handler(event, context):
         ) from te
 
     asg_specific_endpoint = "healthz"
-    ip_address = None
-
-    try:
-        ip_address = get_instance_ip(instance_id)
-    except Exception as e:
-        logger.error(e)
-
-    logger.info(f"ip_address: {ip_address}")
+    ip_address = get_instance_ip(instance_id)
+    logger.debug(f"ip_address: {ip_address}")
 
     try:
         url = f"http://{ip_address}:9999/{asg_specific_endpoint}"
-        logger.info(f"Calling URL {url}")
+        logger.debug(f"Calling URL {url}")
         endpoint_call = requests.get(url)
-        logger.info(
-            f"Goss endpoint. Status Code: {endpoint_call.status_code}, Content: {endpoint_call.text}"
-        )
-
+        logger.info(f"Goss endpoint. Status Code: {endpoint_call.status_code}")
+        logger.debug(f"Goss endpoint. Content: {endpoint_call.text}")
         if endpoint_call.status_code != 200:
             lifecycle_action_result = "ABANDON"
-            raise FailedGossCheckException(
-                f"Goss returned status code: {endpoint_call.status_code}"
-            )
-
     except Exception as e:
-        logger.error(e)
+        logger.error(f"Exception occurred while getting Goss results: {e}")
+        raise FailedGossCheckException(
+            f"Exception occurred while getting Goss results: {e}"
+        )
 
     try:
         # this is directing interacting with the asg. Should it instead return the LifecycleActionResult to
@@ -136,7 +136,7 @@ def lambda_handler(event, context):
         logger.info(
             f"auto_scaling_group_name:{auto_scaling_group_name}, "
             f"auto_scaling_group_name: {auto_scaling_group_name}, "
-            f"instance_id@ {instance_id},"
+            f"instance_id: {instance_id},"
             f"lifecycle_action_result:{lifecycle_action_result}, "
             f"lifecycle_hook_name:{lifecycle_hook_name}"
         )
@@ -153,5 +153,5 @@ def lambda_handler(event, context):
             f"Caught exception when completing lifecycle action"
         ) from e
 
-    logger.info(f"Exiting lambda with return true.")
-    return True
+    logger.info(f"Exiting lambda with {lifecycle_action_result}.")
+    return lifecycle_action_result
