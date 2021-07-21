@@ -1,46 +1,11 @@
 #!/usr/bin/env python
 import boto3
-import botocore
 import json
-import logging
 import os
 import requests
 
 from aws_lambda_powertools import Logger
-
-# from src.exceptions import (
-#     FailedToCompleteLifecycleActionException,
-#     FailedToLoadContextException,
-#     FailedToLoadEventException,
-#     MissingEventParamsException,
-# )
-
-boto3.set_stream_logger(name="boto3", level=logging.DEBUG)
-
-
-class FailedGossCheckException(Exception):
-    pass
-
-
-class FailedToGetPrivateIpAddressException(Exception):
-    pass
-
-
-class FailedToCompleteLifecycleActionException(Exception):
-    pass
-
-
-class FailedToLoadContextException(Exception):
-    pass
-
-
-class FailedToLoadEventException(Exception):
-    pass
-
-
-class MissingEventParamsException(Exception):
-    pass
-
+from botocore import exceptions
 
 logger = Logger(
     service="aws-lambda-ec2-launch-checks",
@@ -58,7 +23,7 @@ def get_instance_ip(instance_id: str) -> str:
     logger.debug(f"get_instance_ip for {instance_id}")
     try:
         response = ec2_client.describe_instances(InstanceIds=[instance_id])
-    except botocore.exceptions.ClientError as e:
+    except exceptions.ClientError as e:
         raise FailedToGetPrivateIpAddressException(
             f"EC2 Clients Describe Instances request failed with: {e.response['Error']['Message']}"
         ) from e
@@ -81,7 +46,7 @@ def get_instance_ip(instance_id: str) -> str:
 
 
 def lambda_handler(event, context):
-    logger.info(f"Inside lambda_handler. event:{json.dumps(event)}")
+    logger.debug(f"Inside lambda_handler. event:{json.dumps(event)}")
     lifecycle_action_result = "CONTINUE"
 
     try:
@@ -131,9 +96,7 @@ def lambda_handler(event, context):
         )
 
     try:
-        # this is directing interacting with the asg. Should it instead return the LifecycleActionResult to
-        # the stepfunction and the stepfuction pass that to the asg
-        logger.info(
+        logger.debug(
             f"auto_scaling_group_name:{auto_scaling_group_name}, "
             f"auto_scaling_group_name: {auto_scaling_group_name}, "
             f"instance_id: {instance_id},"
@@ -146,12 +109,38 @@ def lambda_handler(event, context):
             LifecycleActionResult=lifecycle_action_result,
             LifecycleHookName=lifecycle_hook_name,
         )
-        logger.info(f"Response of complete_lifecycle_action: {response}")
+        logger.debug(f"Response of complete_lifecycle_action: {response}")
     except Exception as e:
         logger.error(e)
         raise FailedToCompleteLifecycleActionException(
             f"Caught exception when completing lifecycle action"
         ) from e
 
+    # The return value has no use outside of the scope of this Lambda
+    # Used in unit tests as a helpful check
     logger.info(f"Exiting lambda with {lifecycle_action_result}.")
     return lifecycle_action_result
+
+
+class FailedGossCheckException(Exception):
+    pass
+
+
+class FailedToGetPrivateIpAddressException(Exception):
+    pass
+
+
+class FailedToCompleteLifecycleActionException(Exception):
+    pass
+
+
+class FailedToLoadContextException(Exception):
+    pass
+
+
+class FailedToLoadEventException(Exception):
+    pass
+
+
+class MissingEventParamsException(Exception):
+    pass

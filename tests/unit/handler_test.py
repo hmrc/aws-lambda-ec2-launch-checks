@@ -1,11 +1,10 @@
 import pytest
 import os
 import requests
-import requests_mock
 
+from aws_lambda_context import LambdaContext
 from botocore.stub import Stubber
 
-import src.handler
 from src.handler import lambda_handler
 from src.handler import autoscaling_client
 from src.handler import ec2_client
@@ -18,7 +17,6 @@ from src.handler import (
     FailedToLoadEventException,
     MissingEventParamsException,
 )
-from aws_lambda_context import LambdaContext
 
 
 @pytest.fixture(autouse=True)
@@ -115,7 +113,10 @@ def context():
 
 
 def valid_goss_content():
-    return "Service: logstash: running: matches expectation: [true]\n\n\nTotal Duration: 0.093s\nCount: 1, Failed: 0, Skipped: 0\n"
+    return (
+        "Service: logstash: running: matches expectation: [true]\n\n\n"
+        "Total Duration: 0.093s\nCount: 1, Failed: 0, Skipped: 0\n"
+    )
 
 
 @pytest.fixture(scope="function")
@@ -161,7 +162,7 @@ def test_that_the_lambda_handler_succeeds_with_context_stubber(
     autoscaling_complete_lifecycle_action_response_valid,
     requests_mock,
 ):
-    # Arrange. complete_lifecycle_action has an empty response so we've tested the ResponseMetadata
+    # Arrange
     ec2_stub.add_response(
         "describe_instances",
         service_response=ec2_response,
@@ -180,12 +181,6 @@ def test_that_the_lambda_handler_succeeds_with_context_stubber(
 
     # Assert
     assert response == "CONTINUE"
-
-
-# we have an lambda handler returning the result - DONE
-# we have a the instance ip - mocked
-# we get a 200 when hitting the goss endpoint - mocked
-# handler exit 1 if we dont get  200 return form the goss endpoint
 
 
 def test_that_the_lambda_handler_catches_complete_lifecycle_action_exception(
@@ -214,11 +209,11 @@ def test_that_the_lambda_handler_catches_complete_lifecycle_action_exception(
         service_error_code=service_error_code_expected,
     )
 
-    # Act with raising the error
+    # Act
     with pytest.raises(FailedToCompleteLifecycleActionException) as error_message:
         lambda_handler(asg_event, context)
 
-    # Assert. do we get the error message we want.
+    # Assert
     assert "Caught exception when completing lifecycle action" in str(
         error_message.value
     )
@@ -227,43 +222,40 @@ def test_that_the_lambda_handler_catches_complete_lifecycle_action_exception(
 def test_that_the_lambda_handler_catches_no_context_error(
     autoscaling_stub, asg_event, context
 ):
-    # Arrange. complete_lifecycle_action has an empty response so we've tested the ResponseMetadata
-    # Act with raising the error
+    # Act with no context
     with pytest.raises(FailedToLoadContextException) as error_message:
         lambda_handler(asg_event, None)
 
-    # Assert. do we get the error message we want.
+    # Assert
     assert "No context object available" in str(error_message.value)
 
 
 def test_that_the_lambda_handler_catches_bad_event_error(
     autoscaling_stub, asg_event, context
 ):
-    # Arrange.  Bad event data
+    # Arrange
     bad_event = {
         "Payload": {
             "asg_name": "mock_asg",
             "lifecycle_hook_name": "hook_name",
         }
     }
-    # Act with raising the error
+    # Act
     with pytest.raises(FailedToLoadEventException) as error_message:
         lambda_handler(bad_event, context)
 
-    # Assert. do we get the error message we want.
+    # Assert
     assert "Missing key 'ec2_instance_id'" in str(error_message.value)
 
 
 def test_that_the_lambda_handler_catches_none_event_error(
     autoscaling_stub, asg_event, context
 ):
-    # Arrange.  Bad event data
-
-    # Act with raising the error
+    # Act with no event
     with pytest.raises(FailedToLoadEventException) as error_message:
         lambda_handler(None, context)
 
-    # Assert. do we get the error message we want.
+    # Assert
     assert (
         "Incorrect type passed to function: 'NoneType' object is not subscriptable"
         in str(error_message.value)
@@ -273,7 +265,7 @@ def test_that_the_lambda_handler_catches_none_event_error(
 def test_that_the_lambda_handler_catches_event_with_empty_key(
     autoscaling_stub, asg_event, context
 ):
-    # Arrange.  Bad event data
+    # Arrange
     bad_event = {
         "Payload": {
             "asg_name": "mock_asg",
@@ -281,18 +273,16 @@ def test_that_the_lambda_handler_catches_event_with_empty_key(
             "lifecycle_hook_name": "hook_name",
         }
     }
-    # Act with raising the error
+    # Act
     with pytest.raises(MissingEventParamsException) as error_message:
         lambda_handler(bad_event, context)
 
-    # Assert. do we get the error message we want.
+    # Assert
     assert "Empty key in event:" in str(error_message.value)
 
 
 def test_get_instance_ip_valid(ec2_stub, ec2_response):
-
-    # Arrange. complete_lifecycle_action has an empty response so we've tested the ResponseMetadata
-
+    # Arrange
     ec2_stub.add_response(
         "describe_instances",
         service_response=ec2_response,
@@ -308,8 +298,7 @@ def test_get_instance_ip_valid(ec2_stub, ec2_response):
 def test_get_instance_ip_raises_clienterror(
     ec2_stub, ec2_response_empty_instances_array
 ):
-
-    # Arrange. complete_lifecycle_action has an empty response so we've tested the ResponseMetadata
+    # Arrange
     ec2_stub.add_client_error(
         "describe_instances",
         service_error_code="InvalidInstanceID.NotFound",
@@ -330,8 +319,7 @@ def test_get_instance_ip_raises_clienterror(
 def test_get_instance_ip_with_empty_instance_array(
     ec2_stub, ec2_response_empty_instances_array
 ):
-
-    # Arrange. complete_lifecycle_action has an empty response so we've tested the ResponseMetadata
+    # Arrange
     ec2_stub.add_response(
         "describe_instances",
         service_response=ec2_response_empty_instances_array,
@@ -348,8 +336,7 @@ def test_get_instance_ip_with_empty_instance_array(
 def test_get_instance_ip_with_empty_instance_array_no_ipaddress(
     ec2_stub, ec2_response_with_no_ipaddress
 ):
-
-    # Arrange. complete_lifecycle_action has an empty response so we've tested the ResponseMetadata
+    # Arrange
     ec2_stub.add_response(
         "describe_instances",
         service_response=ec2_response_with_no_ipaddress,
@@ -365,7 +352,6 @@ def test_get_instance_ip_with_empty_instance_array_no_ipaddress(
     )
 
 
-# If the Goss returns a status code other than 200 then lifecycle_action_result
 def test_goss_does_not_return_200(
     ec2_stub,
     autoscaling_stub,
