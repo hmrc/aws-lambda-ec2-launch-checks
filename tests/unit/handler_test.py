@@ -152,7 +152,7 @@ def aws_credentials():
     os.environ["AWS_DEFAULT_REGION"] = "eu-west-2"
 
 
-def test_that_the_lambda_handler_succeeds_with_context_stubber(
+def test_goss_succeeds_completes_lifecycle_action(
     ec2_stub,
     autoscaling_stub,
     ec2_response,
@@ -177,10 +177,9 @@ def test_that_the_lambda_handler_succeeds_with_context_stubber(
     requests_mock.get(f"http://10.1.3.1:9999/healthz", text=valid_goss_content())
 
     # Act
-    response = lambda_handler(asg_event, context)
+    lambda_handler(asg_event, context)
 
     # Assert
-    assert response == "CONTINUE"
 
 
 def test_that_the_lambda_handler_catches_complete_lifecycle_action_exception(
@@ -352,14 +351,11 @@ def test_get_instance_ip_with_empty_instance_array_no_ipaddress(
     )
 
 
-def test_goss_does_not_return_200(
+def test_goss_returns_error_throws_exception(
     ec2_stub,
-    autoscaling_stub,
     ec2_response,
     asg_event,
     context,
-    autoscaling_complete_lifecycle_action_valid_abandon_parameters,
-    autoscaling_complete_lifecycle_action_response_valid,
     requests_mock,
 ):
     # Arrange.
@@ -368,22 +364,17 @@ def test_goss_does_not_return_200(
         service_response=ec2_response,
     )
 
-    autoscaling_stub.add_response(
-        "complete_lifecycle_action",
-        expected_params=autoscaling_complete_lifecycle_action_valid_abandon_parameters,
-        service_response=autoscaling_complete_lifecycle_action_response_valid,
-    )
-
     requests_mock.get(f"http://10.1.3.1:9999/healthz", status_code=500)
 
     # Act
-    response = lambda_handler(asg_event, context)
+    with pytest.raises(FailedGossCheckException) as error_message:
+        lambda_handler(asg_event, context)
 
-    # Assert
-    assert response == "ABANDON"
+    # Assert. do we get the error message we want.
+    assert "Goss check failed" in str(error_message.value)
 
 
-def test_goss_check_throws_exception(
+def test_goss_connection_timeout_throws_exception(
     ec2_stub,
     ec2_response,
     asg_event,
@@ -404,5 +395,5 @@ def test_goss_check_throws_exception(
     with pytest.raises(FailedGossCheckException) as error_message:
         lambda_handler(asg_event, context)
 
-    # Assert. do we get the error message we want.
+    # Assert
     assert "Exception occurred while getting Goss results:" in str(error_message.value)

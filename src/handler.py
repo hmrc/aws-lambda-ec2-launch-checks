@@ -47,7 +47,6 @@ def get_instance_ip(instance_id: str) -> str:
 
 def lambda_handler(event, context):
     logger.debug(f"Inside lambda_handler. event:{json.dumps(event)}")
-    lifecycle_action_result = "CONTINUE"
 
     try:
         logger.info(f"Lambda Request ID: {context.aws_request_id}")
@@ -81,14 +80,15 @@ def lambda_handler(event, context):
     ip_address = get_instance_ip(instance_id)
     logger.debug(f"ip_address: {ip_address}")
 
+    goss_test_pass = False
     try:
         url = f"http://{ip_address}:9999/{asg_specific_endpoint}"
         logger.debug(f"Calling URL {url}")
         endpoint_call = requests.get(url)
         logger.info(f"Goss endpoint. Status Code: {endpoint_call.status_code}")
         logger.debug(f"Goss endpoint. Content: {endpoint_call.text}")
-        if endpoint_call.status_code != 200:
-            lifecycle_action_result = "ABANDON"
+        if endpoint_call.status_code == 200:
+            goss_test_pass = True
 
     except Exception as e:
         logger.error(f"Exception occurred while getting Goss results: {e}")
@@ -96,7 +96,8 @@ def lambda_handler(event, context):
             f"Exception occurred while getting Goss results: {e}"
         )
 
-    if lifecycle_action_result == "ABANDON":
+    if not goss_test_pass:
+        # Throwing an exception so step function will retry till Goss tests pass
         raise FailedGossCheckException(f"Goss check failed")
 
     try:
@@ -104,13 +105,12 @@ def lambda_handler(event, context):
             f"auto_scaling_group_name:{auto_scaling_group_name}, "
             f"auto_scaling_group_name: {auto_scaling_group_name}, "
             f"instance_id: {instance_id},"
-            f"lifecycle_action_result:{lifecycle_action_result}, "
             f"lifecycle_hook_name:{lifecycle_hook_name}"
         )
         response = autoscaling_client.complete_lifecycle_action(
             AutoScalingGroupName=auto_scaling_group_name,
             InstanceId=instance_id,
-            LifecycleActionResult=lifecycle_action_result,
+            LifecycleActionResult="CONTINUE",
             LifecycleHookName=lifecycle_hook_name,
         )
         logger.debug(f"Response of complete_lifecycle_action: {response}")
@@ -119,11 +119,6 @@ def lambda_handler(event, context):
         raise FailedToCompleteLifecycleActionException(
             f"Caught exception when completing lifecycle action"
         ) from e
-
-    # The return value has no use outside of the scope of this Lambda
-    # Used in unit tests as a helpful check
-    logger.info(f"Exiting lambda with {lifecycle_action_result}.")
-    return lifecycle_action_result
 
 
 class FailedGossCheckException(Exception):
