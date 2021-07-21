@@ -89,11 +89,15 @@ def lambda_handler(event, context):
         logger.debug(f"Goss endpoint. Content: {endpoint_call.text}")
         if endpoint_call.status_code != 200:
             lifecycle_action_result = "ABANDON"
+
     except Exception as e:
         logger.error(f"Exception occurred while getting Goss results: {e}")
         raise FailedGossCheckException(
             f"Exception occurred while getting Goss results: {e}"
         )
+
+    if lifecycle_action_result == "ABANDON":
+        raise FailedGossCheckException(f"Goss check failed")
 
     try:
         logger.debug(
