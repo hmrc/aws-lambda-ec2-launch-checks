@@ -1,0 +1,30 @@
+version: 0.2
+env:
+  variables:
+    MDTP_ENVIRONMENT: "internal-base"
+    SAM_USE_CONTAINER: ""
+  parameter-store:
+    GITHUB_API_TOKEN: telemetry_github_token
+    GITHUB_API_USER: telemetry_github_user
+phases:
+  install:
+    runtime-versions:
+      python: 3.8
+    commands:
+      - cd $(pyenv root)
+      - git stash
+      - git pull
+      - cd -
+      - pyenv install -s $(cat .python-version)
+  pre_build:
+    commands:
+      - 'pip install --upgrade pip'
+      - pyenv global $(cat .python-version)
+      - 'curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -'
+      - 'export PATH=$PATH:$HOME/.poetry/bin'
+      - 'poetry config virtualenvs.create false'
+      - 'poetry install'
+  build:
+    commands:
+      - export GIT_BRANCH=${CODEBUILD_SOURCE_VERSION}
+      - GIT_BRANCH=${CODEBUILD_SOURCE_VERSION} GITHUB_API_TOKEN=${GITHUB_API_TOKEN} GITHUB_API_USER=${GITHUB_API_USER} make verify_package_and_publish
