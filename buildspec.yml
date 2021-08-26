@@ -26,4 +26,4 @@ phases:
       - poetry install
   build:
     commands:
-            - GIT_BRANCH=${CODEBUILD_RESOLVED_SOURCE_VERSION:-default} GITHUB_API_TOKEN=${GITHUB_API_TOKEN} GITHUB_API_USER=${GITHUB_API_USER} make verify_package_and_publish
+      - GIT_BRANCH=${CODEBUILD_RESOLVED_SOURCE_VERSION:-default} GITHUB_API_TOKEN=${GITHUB_API_TOKEN} GITHUB_API_USER=${GITHUB_API_USER} make verify_package_and_publish
