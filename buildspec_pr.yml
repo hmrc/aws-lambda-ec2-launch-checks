@@ -2,7 +2,7 @@ version: 0.2
 env:
   variables:
     MDTP_ENVIRONMENT: "internal-base"
-    SAM_USE_CONTAINER: ""
+    SAM_USE_CONTAINER: "--use-container"
 phases:
   install:
     runtime-versions:
@@ -15,12 +15,12 @@ phases:
       - pyenv install -s $(cat .python-version)
   pre_build:
     commands:
-      - 'pip install --upgrade pip'
+      - pip install --upgrade pip
       - pyenv global $(cat .python-version)
-      - 'curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -'
-      - 'export PATH=$PATH:$HOME/.poetry/bin'
-      - 'poetry config virtualenvs.create false'
-      - 'poetry install'
+      - curl -sSL https://raw.githubusercontent.com/python-poetry/poetry/master/get-poetry.py | python -
+      - export PATH=$PATH:$HOME/.poetry/bin
+      - poetry config virtualenvs.create false
+      - poetry install
   build:
     commands:
       - make verify

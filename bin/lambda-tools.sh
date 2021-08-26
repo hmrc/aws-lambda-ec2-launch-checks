@@ -80,7 +80,7 @@ publish_artifacts_to_s3() {
   # Commenting this as I dont see why it is needed here also I expect awscli be installed in the codebuild instance
   # pip install awscli
 
-  SAM_CLI_TELEMETRY=0 poetry run sam package ${SAM_USE_CONTAINER:=""} --region eu-west-2 \
+  SAM_CLI_TELEMETRY=0 poetry run sam package --region eu-west-2 \
     --s3-bucket ${S3_TELEMETRY_LAMBDA_ROOT} \
     --s3-prefix ${S3_LAMBDA_SUB_FOLDER} \
     --output-template-file=${PATH_CF_TEMPLATE}
