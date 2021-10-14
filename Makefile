@@ -90,5 +90,5 @@ verify: ## Run task verify
 	@poetry run task verify
 .PHONY: verify
 
-verify_package_and_publish: setup prepare_release package publish cut_release
+verify_package_and_publish: setup verify prepare_release publish cut_release
 .PHONY: verify_package_and_publish
