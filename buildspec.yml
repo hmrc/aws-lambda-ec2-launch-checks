@@ -2,7 +2,6 @@ version: 0.2
 env:
   variables:
     MDTP_ENVIRONMENT: "internal-base"
-    SAM_USE_CONTAINER: "--use-container"
   parameter-store:
     GITHUB_API_TOKEN: telemetry_github_token
     GITHUB_API_USER: telemetry_github_user
