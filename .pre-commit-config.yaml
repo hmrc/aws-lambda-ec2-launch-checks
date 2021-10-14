@@ -7,7 +7,7 @@ repos:
         language: script
         pass_filenames: false
   - repo: git://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1 # Use the ref you want to point at
+    rev: v4.0.1
     hooks:
       - id: no-commit-to-branch
       - id: check-case-conflict
@@ -20,7 +20,7 @@ repos:
       - id: end-of-file-fixer
         exclude: repository.yaml
   - repo: https://github.com/python/black
-    rev: 21.5b2
+    rev: 21.9b0
     hooks:
       - id: black
         name: Run Black
