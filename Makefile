@@ -9,7 +9,7 @@ ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 POETRY_VIRTUALENVS_IN_PROJECT ?= true
 
 TELEMETRY_INTERNAL_BASE_ACCOUNT_ID := 634456480543
-BUCKET_NAME := telemetry-lambda-artifacts-internal-base
+BUCKET_NAME := telemetry-internal-base-lambda-artifacts
 LAMBDA_NAME := ec2_launch_checks
 
 help: ## The help text you're reading

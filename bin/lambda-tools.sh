@@ -17,7 +17,7 @@ PATH_BUILD="${BASE_LOCATION}/build"
 PATH_CF_TEMPLATE="${PATH_BUILD}/${PROJECT_NAME}-cf-template.yaml"
 PATH_SAM_RESOURCES="${BASE_LOCATION}/resources/aws-sam-cli/"
 
-S3_TELEMETRY_LAMBDA_ROOT="telemetry-lambda-artifacts-internal-base"
+S3_TELEMETRY_LAMBDA_ROOT="telemetry-internal-base-lambda-artifacts"
 S3_LAMBDA_SUB_FOLDER="build-${PROJECT_FULL_NAME}"
 S3_ADDRESS="s3://${S3_TELEMETRY_LAMBDA_ROOT}/${S3_LAMBDA_SUB_FOLDER}"
 
