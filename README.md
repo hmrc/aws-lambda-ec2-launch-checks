@@ -2,6 +2,8 @@
 
 [![Brought to you by Telemetry Team](https://img.shields.io/badge/MDTP-Telemetry-40D9C0?style=flat&labelColor=000000&logo=gov.uk)](https://confluence.tools.tax.service.gov.uk/display/TEL/Telemetry)
 
+> WARNING: this is a test
+
 * Triggered by an Auto Scaling Lifecycle hook when launching an instance.
 * This Lambda checks the Goss end point of the instance and if the Goss tests pass the Lifecycle hook is completed.
 * Enabled in Terraform by the flag: `enable_health_check_hook = true`
