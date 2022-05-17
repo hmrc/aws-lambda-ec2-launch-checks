@@ -6,8 +6,8 @@ repos:
         entry: ./bin/check-tool-versions.sh
         language: script
         pass_filenames: false
-  - repo: git://github.com/pre-commit/pre-commit-hooks
-    rev: v4.0.1
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.2.0
     hooks:
       - id: no-commit-to-branch
       - id: check-case-conflict
@@ -20,12 +20,12 @@ repos:
       - id: end-of-file-fixer
         exclude: repository.yaml
   - repo: https://github.com/python/black
-    rev: 21.9b0
+    rev: 22.3.0
     hooks:
       - id: black
         name: Run Black
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.0
+    rev: 1.7.4
     hooks:
       - id: bandit
         name: Run Bandit

@@ -2,7 +2,8 @@
 name = "aws-lambda-ec2-launch-checks"
 version = "0.0.0"
 description = "An AWS Lambda that will check Goss endpoint when triggered by ASG instance launch"
-authors = ["Paul Marsh <61422343+PTMGitHub@users.noreply.github.com>"]
+readme = "README.md"
+authors = ["Team Telemetry <telemetry@digital.hmrc.gov.uk>"]
 maintainers = ["Team Telemetry"]
 license = "Apache 2.0"
 
@@ -46,7 +47,8 @@ publish = "./bin/lambda-tools.sh publish"
 publish_checksum_file = "./bin/lambda-tools.sh publish_checksum_file"
 publish_s3 = "./bin/lambda-tools.sh publish_artifacts_to_s3"
 rename_s3_file = "./bin/lambda-tools.sh rename_artifacts_in_s3"
-safety = "safety check"
+# Reason for safely skipping check: https://github.com/aws/aws-sam-cli/issues/3691#issuecomment-1099503361
+safety = "safety check --ignore=47833"
 start_lambda = "./bin/start-lambda.sh"
 stop_lambda = "./bin/stop-lambda.sh"
 test = "task unittest"
