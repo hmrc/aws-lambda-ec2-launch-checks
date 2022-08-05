@@ -2,9 +2,13 @@ version: 0.2
 env:
   variables:
     MDTP_ENVIRONMENT: "internal-base"
+
+# https://docs.aws.amazon.com/codebuild/latest/userguide/sample-docker-custom-image.html#sample-docker-custom-image-files
 phases:
   install:
     commands:
+      - nohup /usr/local/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://127.0.0.1:2375 --storage-driver=overlay2 &
+      - timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
       - make setup
   build:
     commands:

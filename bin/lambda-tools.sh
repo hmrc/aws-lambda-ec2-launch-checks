@@ -10,12 +10,9 @@ set -o nounset
 ## Beginning of the configurations ##################################
 
 BASE_LOCATION="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PROJECT_FULL_NAME=$(basename $BASE_LOCATION)
-PROJECT_NAME=$(echo $PROJECT_FULL_NAME | sed 's/aws-lambda-//')
-
+LAMBDA_ZIP_NAME="lambda.zip"
 PATH_BUILD="${BASE_LOCATION}/build"
-PATH_CF_TEMPLATE="${PATH_BUILD}/${PROJECT_NAME}-cf-template.yaml"
-PATH_SAM_RESOURCES="${BASE_LOCATION}/resources/aws-sam-cli/"
+PROJECT_FULL_NAME="aws-lambda-ec2-launch-checks"
 
 S3_TELEMETRY_LAMBDA_ROOT="telemetry-internal-base-lambda-artifacts"
 S3_LAMBDA_SUB_FOLDER="build-${PROJECT_FULL_NAME}"
@@ -24,13 +21,58 @@ S3_ADDRESS="s3://${S3_TELEMETRY_LAMBDA_ROOT}/${S3_LAMBDA_SUB_FOLDER}"
 ## End of the configurations ########################################
 #####################################################################
 
+debug_env(){
+  echo BASE_LOCATION="${BASE_LOCATION}"
+  echo PROJECT_FULL_NAME=${PROJECT_FULL_NAME}
+  echo PATH_BUILD="${PATH_BUILD}"
+  echo S3_TELEMETRY_LAMBDA_ROOT="${S3_TELEMETRY_LAMBDA_ROOT}"
+  echo S3_ADDRESS="${S3_ADDRESS}"
+}
+
+open_shell() {
+    print_begins
+
+    poetry export --without-hashes --format requirements.txt --dev --output "requirements-tests.txt"
+    docker run -it \
+               --rm \
+               --volume "${BASE_LOCATION}":/data \
+               --workdir /data \
+               --env REQUIREMENTS_FILE="requirements-tests.txt" \
+               --env VENV_NAME="venv" \
+               python:$(cat "${BASE_LOCATION}/.python-version")-slim-buster /data/bin/entrypoint.sh /bin/bash
+
+    print_completed
+}
+
+# Prepare dependencies and run unit tests in a Docker environment
+unittest() {
+  print_begins
+
+  poetry export --without-hashes --format requirements.txt --dev --output "requirements-tests.txt"
+  docker run --rm \
+             --tty \
+             --volume "${BASE_LOCATION}":/data \
+             --workdir /data \
+             --env REQUIREMENTS_FILE="requirements-tests.txt" \
+             --env VENV_NAME="venv" \
+             python:$(cat "${BASE_LOCATION}/.python-version")-slim-buster /data/bin/entrypoint.sh /data/bin/run-tests.sh
+
+  print_completed
+}
+
 # Prepare dependencies and build the Lambda function code using SAM
 assemble() {
   print_begins
 
-  mkdir -p ${PATH_BUILD}
-  poetry export --without-hashes --format requirements.txt --output ${PATH_BUILD}/requirements.txt
-  SAM_CLI_TELEMETRY=0 poetry run sam build ${SAM_USE_CONTAINER:=""} --template-file ${PATH_SAM_RESOURCES}/template.yaml --manifest ${PATH_BUILD}/requirements.txt --region eu-west-2
+  poetry export --without-hashes --format requirements.txt --output "requirements.txt"
+  docker run --rm \
+             --tty \
+             --volume "${BASE_LOCATION}":/data \
+             --workdir /data \
+             --env LAMBDA_ZIP_NAME=${LAMBDA_ZIP_NAME} \
+             --env REQUIREMENTS_FILE="requirements.txt" \
+             --env VENV_NAME="venv_assemble" \
+             python:$(cat "${BASE_LOCATION}/.python-version")-slim-buster /data/bin/entrypoint.sh /data/bin/assemble-lambda.sh
 
   print_completed
 }
@@ -60,7 +102,6 @@ publish() {
 
   assemble
   publish_artifacts_to_s3
-  rename_artifacts_in_s3
   publish_checksum_file
 
   print_completed
@@ -72,18 +113,8 @@ publish_artifacts_to_s3() {
 
   export_version
 
-  # Unfortunately Poetry won't allow
-  # us to add awscli to the --dev dependencies due to transitive
-  # dependency conflicts with aws-sam-cli. Until the conflicts are
-  # resolved we have to use pip to install awscli.
-
-  # Commenting this as I dont see why it is needed here also I expect awscli be installed in the codebuild instance
-  # pip install awscli
-
-  SAM_CLI_TELEMETRY=0 poetry run sam package --region eu-west-2 \
-    --s3-bucket ${S3_TELEMETRY_LAMBDA_ROOT} \
-    --s3-prefix ${S3_LAMBDA_SUB_FOLDER} \
-    --output-template-file=${PATH_CF_TEMPLATE}
+  aws s3 cp "${PATH_BUILD}/${LAMBDA_ZIP_NAME}" "${S3_ADDRESS}/${PROJECT_FULL_NAME}.${VERSION}.zip" \
+      --acl=bucket-owner-full-control
 
   print_completed
 }
@@ -93,27 +124,12 @@ publish_checksum_file() {
   print_begins
 
   export_version
-  export FILE_NAME="aws-lambda-${PROJECT_NAME}.${VERSION}.zip"
-  export HASH_FILE_NAME="${FILE_NAME}.base64sha256.txt"
-  aws s3 cp ${S3_ADDRESS}/${FILE_NAME} ${PATH_BUILD}/${FILE_NAME}
-  echo -n "${PATH_BUILD}/${FILE_NAME}" | openssl dgst -binary -sha1 | openssl base64 >${PATH_BUILD}/${HASH_FILE_NAME}
-  aws s3 cp ${PATH_BUILD}/${HASH_FILE_NAME} ${S3_ADDRESS}/${HASH_FILE_NAME} \
+  export FILE_NAME="${PROJECT_FULL_NAME}.${VERSION}.zip"
+  export HASH_FILE_NAME="${FILE_NAME}.base64sha256"
+  aws s3 cp "${S3_ADDRESS}/${FILE_NAME}" "${PATH_BUILD}/${FILE_NAME}"
+  openssl dgst -sha256 -binary "${PATH_BUILD}/${FILE_NAME}" | openssl enc -base64 >"${PATH_BUILD}/${HASH_FILE_NAME}"
+  aws s3 cp "${PATH_BUILD}/${HASH_FILE_NAME}" "${S3_ADDRESS}/${HASH_FILE_NAME}" \
     --content-type text/plain --acl=bucket-owner-full-control
-
-  print_completed
-}
-
-# Rename SAM generated package to the expected format by terraform,
-#   to be picked up during provisioning of the AWS "Lambda function" resource
-rename_artifacts_in_s3() {
-  print_begins
-
-  export_version
-  export S3_KEY_FILENAME=$(grep S3Key ${PATH_CF_TEMPLATE} | cut -d : -f 2 | cut -d / -f 2 | sed 's/\s*//g')
-
-  # Using mv instead of cp will require updating the codebuild's service-role to grant DeleteObject permission
-  aws s3 mv ${S3_ADDRESS}/${S3_KEY_FILENAME} ${S3_ADDRESS}/aws-lambda-${PROJECT_NAME}.${VERSION}.zip \
-    --acl=bucket-owner-full-control
 
   print_completed
 }
@@ -136,12 +152,11 @@ help() {
   echo "$0 Provides set of commands to assist you with day-to-day tasks when working in this project"
   echo
   echo "Available commands:"
-  echo -e " - assemble\t\t\t Prepare dependencies and build the Lambda function code using SAM"
+  echo -e " - assemble\t\t\t Prepare dependencies and build the Lambda function code using Docker"
   echo -e " - prepare_release\t\t Bump the function's version when appropriate"
-  echo -e " - publish\t\t\t Package and share artifacts by running assemble, publish_artifacts_to_s3, rename_artifacts_in_s3 and publish_checksum_file commands"
+  echo -e " - publish\t\t\t Package and share artifacts by running assemble, publish_artifacts_to_s3 and publish_checksum_file commands"
   echo -e " - publish_artifacts_to_s3\t Uses SAM to Package and upload artifacts to ${S3_ADDRESS}"
   echo -e " - publish_checksum_file\t Generate a checksum for the artifacts zip file and store in the same S3 location (${S3_LAMBDA_SUB_FOLDER})"
-  echo -e " - rename_artifacts_in_s3\t Rename the artifact published by SAM to ${S3_ADDRESS} to expected, versioned file name"
   echo -e " - cut_release\t\t Creates a release tag in the repository"
   echo
 }
@@ -158,12 +173,8 @@ print_completed() {
 
 print_configs() {
   echo -e "BASE_LOCATION:\t\t\t${BASE_LOCATION}"
-  echo -e "PROJECT_FULL_NAME:\t\t${PROJECT_FULL_NAME}"
-  echo -e "PROJECT_NAME:\t\t\t${PROJECT_NAME}"
-  echo
   echo -e "PATH_BUILD:\t\t\t${PATH_BUILD}"
-  echo -e "PATH_CF_TEMPLATE:\t\t${PATH_CF_TEMPLATE}"
-  echo -e "PATH_SAM_RESOURCES:\t\t${PATH_SAM_RESOURCES}"
+  echo -e "PROJECT_FULL_NAME:\t\t${PROJECT_FULL_NAME}"
   echo
   echo -e "S3_TELEMETRY_LAMBDA_ROOT:\t${S3_TELEMETRY_LAMBDA_ROOT}"
   echo -e "S3_LAMBDA_SUB_FOLDER:\t\t${S3_LAMBDA_SUB_FOLDER}"
@@ -179,8 +190,11 @@ main() {
   # Validate command arguments
   [ "$#" -ne 1 ] && help && exit 1
   function="$1"
-  functions="help assemble publish_s3 rename_s3_file publish publish_checksum_file prepare_release print_configs cut_release"
+  functions="help debug_env open_shell unittest assemble publish_s3 rename_s3_file publish publish_checksum_file prepare_release print_configs cut_release"
   [[ $functions =~ (^|[[:space:]])"$function"($|[[:space:]]) ]] || (echo -e "\n\"$function\" is not a valid command. Try \"$0 help\" for more details" && exit 2)
+
+  # Ensure build folder is available
+  mkdir -p "${PATH_BUILD}"
 
   $function
 }
