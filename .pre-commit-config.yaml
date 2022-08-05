@@ -43,7 +43,7 @@ repos:
     hooks:
       - id: bandit
         name: Run Bandit
-        args: [-ll,]
+        args: [-ll, -c, .bandit]
         language_version: python3
   - repo: https://github.com/hmrc/security-git-hooks
     rev: release/1.9.0

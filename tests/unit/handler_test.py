@@ -1,22 +1,20 @@
-import pytest
 import os
-import requests
 
+import pytest
+import requests
 from aws_lambda_context import LambdaContext
 from botocore.stub import Stubber
 
-from src.handler import lambda_handler
 from src.handler import autoscaling_client
 from src.handler import ec2_client
+from src.handler import FailedGossCheckException
+from src.handler import FailedToCompleteLifecycleActionException
+from src.handler import FailedToGetPrivateIpAddressException
+from src.handler import FailedToLoadContextException
+from src.handler import FailedToLoadEventException
 from src.handler import get_instance_ip
-from src.handler import (
-    FailedGossCheckException,
-    FailedToCompleteLifecycleActionException,
-    FailedToGetPrivateIpAddressException,
-    FailedToLoadContextException,
-    FailedToLoadEventException,
-    MissingEventParamsException,
-)
+from src.handler import lambda_handler
+from src.handler import MissingEventParamsException
 
 
 @pytest.fixture(autouse=True)
