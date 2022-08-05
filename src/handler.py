@@ -1,9 +1,9 @@
 #!/usr/bin/env python
-import boto3
 import json
 import os
-import requests
 
+import boto3
+import requests
 from aws_lambda_powertools import Logger
 from botocore import exceptions
 
@@ -37,11 +37,11 @@ def get_instance_ip(instance_id: str) -> str:
         ]
     except IndexError as e:
         raise FailedToGetPrivateIpAddressException(
-            f"Instances list index out of range"
+            "Instances list index out of range"
         ) from e
     except KeyError as e:
         raise FailedToGetPrivateIpAddressException(
-            f"PrivateIpAddress field not found in ec2 describe instance response"
+            "PrivateIpAddress field not found in ec2 describe instance response"
         ) from e
 
     return private_ip_address
@@ -55,7 +55,7 @@ def lambda_handler(event, context):
         logger.info(f"Lambda Request ID: {context.aws_request_id}")
     except AttributeError as e:
         logger.error(e)
-        raise FailedToLoadContextException(f"No context object available") from e
+        raise FailedToLoadContextException("No context object available") from e
 
     try:
         # All three keys are required and should be present, raise KeyError if any are not supplied.
@@ -101,7 +101,7 @@ def lambda_handler(event, context):
 
     if not goss_test_pass:
         # Throwing an exception so step function will retry till Goss tests pass
-        raise FailedGossCheckException(f"Goss check failed")
+        raise FailedGossCheckException("Goss check failed")
 
     try:
         logger.debug(
@@ -120,7 +120,7 @@ def lambda_handler(event, context):
     except Exception as e:
         logger.error(e)
         raise FailedToCompleteLifecycleActionException(
-            f"Caught exception when completing lifecycle action"
+            "Caught exception when completing lifecycle action"
         ) from e
 
 

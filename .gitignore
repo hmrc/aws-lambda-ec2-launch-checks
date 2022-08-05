@@ -1,8 +1,9 @@
 # Project specific
+.envrc
 /.coverage
 /build
 *.pyc
-# Platform-wide .gitignore rules
+
 logs
 project/project
 project/target
@@ -21,17 +22,17 @@ dist
 /RUNNING_PID
 /.settings
 *.iws
-node_modules/
-npm-debug.log
-yarn-debug.log
-yarn-error.log
-*.pyc
-__pychache*
+lambda-packages
 .coverage
-lambda-packages/
-venv/
-*.zip
+log_handler.zip
+log_handler.zip.base64sha256
+__pycache__
+venv*
+*.tgz
 .vscode/
 .version
-.aws-sam/
 .pytest_cache/
+
+# Poetry generated requirements files
+requirements.txt
+requirements-tests.txt

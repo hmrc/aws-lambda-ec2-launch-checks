@@ -1,0 +1,2 @@
+# See here for details: https://github.com/PyCQA/bandit/issues/716
+skips: []
