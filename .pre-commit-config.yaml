@@ -29,12 +29,12 @@ repos:
         name: Fix missing end-of-file line returns
         exclude: repository.yaml
   - repo: https://github.com/asottile/reorder_python_imports
-    rev: v3.8.2
+    rev: v3.8.5
     hooks:
       - id: reorder-python-imports
         name: Reorder python imports
   - repo: https://github.com/python/black
-    rev: 22.6.0
+    rev: 22.10.0
     hooks:
       - id: black
         name: Run Black
