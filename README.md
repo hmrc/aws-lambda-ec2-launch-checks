@@ -10,7 +10,7 @@ Please check the [telemetry-terraform](https://github.com/hmrc/telemetry-terrafo
 
 ## Requirements
 
-* [Python 3.8+](https://www.python.org/downloads/release)
+* [Python 3.9+](https://www.python.org/downloads/release)
 * [Poetry](https://python-poetry.org/)
 
 ## Quick start

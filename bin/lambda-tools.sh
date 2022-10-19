@@ -32,7 +32,7 @@ debug_env(){
 open_shell() {
     print_begins
 
-    poetry export --without-hashes --format requirements.txt --dev --output "requirements-tests.txt"
+    poetry export --without-hashes --format requirements.txt --with dev --output "requirements-tests.txt"
     docker run -it \
                --rm \
                --volume "${BASE_LOCATION}":/data \
@@ -48,7 +48,7 @@ open_shell() {
 unittest() {
   print_begins
 
-  poetry export --without-hashes --format requirements.txt --dev --output "requirements-tests.txt"
+  poetry export --without-hashes --format requirements.txt --with dev --output "requirements-tests.txt"
   docker run --rm \
              --tty \
              --volume "${BASE_LOCATION}":/data \
