@@ -6,7 +6,6 @@ POETRY_VIRTUALENVS_IN_PROJECT ?= true
 PYTHON_OK := $(shell type -P python)
 PYTHON_REQUIRED := $(shell cat .python-version)
 PYTHON_VERSION ?= $(shell python -V | cut -d' ' -f2)
-ROOT_DIR := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
 
 BUCKET_NAME := telemetry-internal-base-lambda-artifacts
 LAMBDA_NAME := aws-lambda-ec2-launch-checks
@@ -16,9 +15,7 @@ help: ## The help text you're reading
 	@grep --no-filename -E '^[a-zA-Z1-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
 .PHONY: help
 
-assemble: clean ## Build the lambda zip file using Docker
-	@./bin/lambda-tools.sh assemble
-.PHONY: assemble
+
 
 bandit: ## Run bandit against python code
 	@poetry run bandit -r ./src -c .bandit
@@ -54,7 +51,7 @@ check_python: ## Check Python installation
 .PHONY: check_python
 
 clean: ## Teardown build artefacts
-	@rm -rf ./build ./venv ./venv_assemble
+	@sudo rm -rf ./build ./venv ./venv_package
 .PHONY: clean
 
 cut_release: ## Cut release
@@ -65,8 +62,8 @@ debug_env: ## Print out variables used by lambda-tools.sh
 	@./bin/lambda-tools.sh debug_env
 .PHONY: debug_env
 
-package: ## Run a Docker build to assemble the lambda zip file
-	@./bin/lambda-tools.sh assemble
+package: setup ## Run a Docker build to package the lambda zip file
+	@./bin/lambda-tools.sh package
 .PHONY: package
 
 prepare_release: ## Runs prepare release
@@ -91,12 +88,12 @@ sh: ## Start an interactive session in the Python container
 	@./bin/lambda-tools.sh open_shell
 .PHONY: sh
 
-test: ## Run unit tests
+test: setup ## Run unit tests
 	@./bin/lambda-tools.sh unittest
 .PHONY: test
 
-verify: setup test bandit black safety ## Run all the checks and tests
+verify: test bandit black safety ## Run all the checks and tests
 .PHONY: verify
 
-verify_package_and_publish: verify prepare_release publish cut_release ## Run all the checks and tests, assemble, and then publish the lambda
-.PHONY: verify_package_and_publish
+verify_publish_release: verify prepare_release publish cut_release ## Run all the checks and tests, package, publish and release the lambda
+.PHONY: verify_publish_release

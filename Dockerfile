@@ -9,6 +9,6 @@ RUN python -m venv venv && \
   pip install --upgrade pip && \
   pip install --requirement requirements-tests.txt --target "${LAMBDA_TASK_ROOT}"
 
-COPY src/handler.py tests ${LAMBDA_TASK_ROOT}/
+COPY src tests ${LAMBDA_TASK_ROOT}/
 
 CMD [ "handler.lambda_handler" ]

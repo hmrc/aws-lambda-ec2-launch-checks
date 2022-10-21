@@ -31,6 +31,10 @@ requests-mock = "^1.9.3"
 safety = "^2.1.1"
 version-incrementor = "^1.5.0"
 
+[tool.poetry.group.dev.dependencies]
+cruft = "^2.11.1"
+cookiecutter = "^2.1.1"
+
 [build-system]
 requires = ["poetry-core>=1.0.0"]
 build-backend = "poetry.core.masonry.api"

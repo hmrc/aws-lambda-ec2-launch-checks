@@ -12,4 +12,5 @@ phases:
       - make setup
   build:
     commands:
+      - pre-commit run --all-files --verbose
       - make verify
