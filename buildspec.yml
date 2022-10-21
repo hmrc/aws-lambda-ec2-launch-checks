@@ -12,4 +12,4 @@ phases:
       - make setup
   build:
     commands:
-      - make verify_package_and_publish
+      - make verify_publish_release

@@ -60,8 +60,8 @@ unittest() {
   print_completed
 }
 
-# Prepare dependencies and build the Lambda function code using SAM
-assemble() {
+# Prepare dependencies and build the Lambda function code using Docker
+package() {
   print_begins
 
   poetry export --without-hashes --format requirements.txt --output "requirements.txt"
@@ -71,8 +71,8 @@ assemble() {
              --workdir /data \
              --env LAMBDA_ZIP_NAME=${LAMBDA_ZIP_NAME} \
              --env REQUIREMENTS_FILE="requirements.txt" \
-             --env VENV_NAME="venv_assemble" \
-             python:$(cat "${BASE_LOCATION}/.python-version")-slim-buster /data/bin/entrypoint.sh /data/bin/assemble-lambda.sh
+             --env VENV_NAME="venv_package" \
+             python:$(cat "${BASE_LOCATION}/.python-version")-slim-buster /data/bin/entrypoint.sh /data/bin/package-lambda.sh
 
   print_completed
 }
@@ -100,14 +100,14 @@ prepare_release() {
 publish() {
   print_begins
 
-  assemble
+  package
   publish_artifacts_to_s3
   publish_checksum_file
 
   print_completed
 }
 
-# Package and upload artifacts to S3 using poetry installed SAM
+# Upload artifacts to S3
 publish_artifacts_to_s3() {
   print_begins
 
@@ -152,10 +152,10 @@ help() {
   echo "$0 Provides set of commands to assist you with day-to-day tasks when working in this project"
   echo
   echo "Available commands:"
-  echo -e " - assemble\t\t\t Prepare dependencies and build the Lambda function code using Docker"
+  echo -e " - package\t\t\t Prepare dependencies and build the Lambda function code using Docker"
   echo -e " - prepare_release\t\t Bump the function's version when appropriate"
-  echo -e " - publish\t\t\t Package and share artifacts by running assemble, publish_artifacts_to_s3 and publish_checksum_file commands"
-  echo -e " - publish_artifacts_to_s3\t Uses SAM to Package and upload artifacts to ${S3_ADDRESS}"
+  echo -e " - publish\t\t\t Package and share artifacts by running package, publish_artifacts_to_s3 and publish_checksum_file commands"
+  echo -e " - publish_artifacts_to_s3\t Upload artifacts to ${S3_ADDRESS}"
   echo -e " - publish_checksum_file\t Generate a checksum for the artifacts zip file and store in the same S3 location (${S3_LAMBDA_SUB_FOLDER})"
   echo -e " - cut_release\t\t Creates a release tag in the repository"
   echo
@@ -190,7 +190,7 @@ main() {
   # Validate command arguments
   [ "$#" -ne 1 ] && help && exit 1
   function="$1"
-  functions="help debug_env open_shell unittest assemble publish_s3 rename_s3_file publish publish_checksum_file prepare_release print_configs cut_release"
+  functions="help debug_env open_shell unittest package publish_s3 rename_s3_file publish publish_checksum_file prepare_release print_configs cut_release"
   [[ $functions =~ (^|[[:space:]])"$function"($|[[:space:]]) ]] || (echo -e "\n\"$function\" is not a valid command. Try \"$0 help\" for more details" && exit 2)
 
   # Ensure build folder is available
