@@ -18,6 +18,7 @@
 /build
 /out
 __pycache__
+coverage.xml
 dist
 lambda-packages
 lib_managed
