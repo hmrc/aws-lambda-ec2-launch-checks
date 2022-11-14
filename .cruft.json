@@ -1,10 +1,11 @@
 {
   "template": "https://github.com/hmrc/telemetry-lambda-resources",
-  "commit": "03088b1497f2e5527bbb52a31d758419130f0cd5",
+  "commit": "2a8f7dfecc4e366364802f4730e56440be7111c9",
   "context": {
     "cookiecutter": {
       "bandit_skip_tests": "",
       "custom_makefile_name": "",
+      "flake8_extra_skip_tests": "",
       "lambda_artifacts_bucket": "telemetry-internal-base-lambda-artifacts",
       "lambda_handler": "handler.lambda_handler",
       "lambda_name": "aws-lambda-ec2-launch-checks",

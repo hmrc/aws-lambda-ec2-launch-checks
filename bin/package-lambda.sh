@@ -2,11 +2,15 @@
 
 set -eu
 
-apt install -y zip
+apt install -y libssl-dev zip
 mkdir -p build
+# Package the dependencies
 cd "./${VENV_NAME}/lib/python3.9/site-packages"
 zip -r "../../../../build/${LAMBDA_ZIP_NAME}" .
 cd -
+# Package the source
 cd "./src"
 zip -r --grow "../build/${LAMBDA_ZIP_NAME}" .
+# Generate the hash file
+openssl dgst -sha256 -binary "../build/${LAMBDA_ZIP_NAME}" | openssl enc -base64 >"../build/${LAMBDA_HASH_NAME}"
 cd -
