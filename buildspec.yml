@@ -1,5 +1,7 @@
 version: 0.2
 env:
+  parameter-store:
+    ARTIFACTORY_TOKEN: /secrets/artifactory-token
   variables:
     MDTP_ENVIRONMENT: "internal-base"
 
