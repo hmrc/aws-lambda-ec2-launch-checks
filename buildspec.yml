@@ -4,6 +4,7 @@ env:
     ARTIFACTORY_TOKEN: /secrets/artifactory-token
   variables:
     MDTP_ENVIRONMENT: "internal-base"
+    PUBLISH_TO_CIP_S3: "false"
 
 # https://docs.aws.amazon.com/codebuild/latest/userguide/sample-docker-custom-image.html#sample-docker-custom-image-files
 phases:
@@ -15,3 +16,7 @@ phases:
   build:
     commands:
       - make verify_publish_release
+      - |
+        if [ "$PUBLISH_TO_CIP_S3" = "true" ] ; then
+          make publish_to_cip_s3;
+        fi

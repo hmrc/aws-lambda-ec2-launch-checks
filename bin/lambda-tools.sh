@@ -115,6 +115,25 @@ publish_to_s3() {
   print_completed
 }
 
+# Upload artifacts to CIP S3 - optional behaviour for any Lambdas that are shared with CIP
+publish_to_cip_s3() {
+  print_begins
+
+  export_version
+  export S3_OBJECT_KEY="${PROJECT_FULL_NAME}.zip"
+  export S3_OBJECT_HASH_KEY="${S3_OBJECT_KEY}.base64sha256"
+
+  for account in integration qa externaltest staging production ; do
+    aws s3 cp "${PATH_BUILD}/${LAMBDA_ZIP_NAME}" s3://txm-lambda-functions-${account}/log_handler.zip \
+      --acl=bucket-owner-full-control
+    aws s3 cp "${PATH_BUILD}/${LAMBDA_HASH_NAME}" s3://txm-lambda-functions-${account}/log_handler.zip.base64sha256 \
+      --acl=bucket-owner-full-control \
+      --content-type text/plain
+  done
+
+  print_completed
+}
+
 # Upload artifacts to Artifactory - optional behaviour for any Lambdas that are shared outside of Telemetry
 publish_to_artifactory() {
   print_begins
@@ -163,6 +182,7 @@ help() {
   echo "Available commands:"
   echo -e " - package\t\t\t Prepare dependencies and build the Lambda function code using Docker"
   echo -e " - prepare_release\t\t Bump the function's version when appropriate"
+  echo -e " - publish_to_cip_s3\t Upload artifacts to CIPs lambda functions s3 bucket"
   echo -e " - publish_to_s3\t Upload artifacts to ${S3_ADDRESS}"
   echo -e " - publish_to_artifactory\t Upload artifacts to B&D's artifactory repository"
   echo -e " - cut_release\t\t Creates a release tag in the repository"
@@ -198,7 +218,7 @@ main() {
   # Validate command arguments
   [ "$#" -ne 1 ] && help && exit 1
   function="$1"
-  functions="help debug_env open_shell unittest package publish_to_s3 publish_to_artifactory prepare_release print_configs cut_release"
+  functions="help debug_env open_shell unittest package publish_to_cip_s3 publish_to_s3 publish_to_artifactory prepare_release print_configs cut_release"
   [[ $functions =~ (^|[[:space:]])"$function"($|[[:space:]]) ]] || (echo -e "\n\"$function\" is not a valid command. Try \"$0 help\" for more details" && exit 2)
 
   # Ensure build folder is available
