@@ -63,6 +63,9 @@ def lambda_handler(event, context):
         instance_id = event["Payload"]["ec2_instance_id"]
         lifecycle_hook_name = event["Payload"]["lifecycle_hook_name"]
 
+        logger.append_keys(asg_name=auto_scaling_group_name)
+        logger.append_keys(instance_id=instance_id)
+
         if not all([auto_scaling_group_name, instance_id, lifecycle_hook_name]):
             logger.error(f"Empty key in event: {json.dumps(event)}")
             raise MissingEventParamsException(
