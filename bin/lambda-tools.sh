@@ -134,34 +134,6 @@ publish_to_cip_s3() {
   print_completed
 }
 
-# Upload artifacts to Artifactory - optional behaviour for any Lambdas that are shared outside of Telemetry
-publish_to_artifactory() {
-  print_begins
-
-  export_version
-  export PACKAGE_NAME="${PROJECT_FULL_NAME}.${VERSION}.zip"
-
-  PACKAGE_MD5=$(md5sum "${PATH_BUILD}/${LAMBDA_ZIP_NAME}" | awk '{print $1}')
-  PACKAGE_SHA1=$(sha1sum "${PATH_BUILD}/${LAMBDA_ZIP_NAME}" | awk '{print $1}')
-  PACKAGE_SHA256=$(sha256sum "${PATH_BUILD}/${LAMBDA_ZIP_NAME}" | awk '{print $1}')
-
-  export PACKAGE_MD5=${PACKAGE_MD5}
-  export PACKAGE_SHA1=${PACKAGE_SHA1}
-  export PACKAGE_SHA256=${PACKAGE_SHA256}
-
-  curl --request PUT \
-       --fail \
-       --silent \
-       --header "Authorization: Bearer ${ARTIFACTORY_TOKEN}" \
-       --header "X-Checksum: ${PACKAGE_MD5}" \
-       --header "X-Checksum-Sha1: ${PACKAGE_SHA1}" \
-       --header "X-Checksum-Sha256: ${PACKAGE_SHA256}" \
-       --upload-file "${PATH_BUILD}/${LAMBDA_ZIP_NAME}" \
-       "https://artefacts.tax.service.gov.uk/artifactory/telemetry-lambda-packages/${PROJECT_FULL_NAME}/${PACKAGE_NAME}"
-
-  print_completed
-}
-
 #####################################################################
 ## Beginning of the helper methods ##################################
 
@@ -184,7 +156,6 @@ help() {
   echo -e " - prepare_release\t\t Bump the function's version when appropriate"
   echo -e " - publish_to_cip_s3\t Upload artifacts to CIPs lambda functions s3 bucket"
   echo -e " - publish_to_s3\t Upload artifacts to ${S3_ADDRESS}"
-  echo -e " - publish_to_artifactory\t Upload artifacts to B&D's artifactory repository"
   echo -e " - cut_release\t\t Creates a release tag in the repository"
   echo
 }
@@ -218,7 +189,7 @@ main() {
   # Validate command arguments
   [ "$#" -ne 1 ] && help && exit 1
   function="$1"
-  functions="help debug_env open_shell unittest package publish_to_cip_s3 publish_to_s3 publish_to_artifactory prepare_release print_configs cut_release"
+  functions="help debug_env open_shell unittest package publish_to_cip_s3 publish_to_s3 prepare_release print_configs cut_release"
   [[ $functions =~ (^|[[:space:]])"$function"($|[[:space:]]) ]] || (echo -e "\n\"$function\" is not a valid command. Try \"$0 help\" for more details" && exit 2)
 
   # Ensure build folder is available
