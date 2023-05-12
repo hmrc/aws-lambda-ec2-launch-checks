@@ -90,7 +90,7 @@ def lambda_handler(event, context):
     try:
         url = f"http://{ip_address}:9999/{asg_specific_endpoint}"
         logger.debug(f"Calling URL {url}")
-        endpoint_call = requests.get(url)
+        endpoint_call = requests.get(url, timeout=30)
         logger.info(f"Goss endpoint. Status Code: {endpoint_call.status_code}")
         logger.debug(f"Goss endpoint. Content: {endpoint_call.text}")
         if endpoint_call.status_code == 200:
