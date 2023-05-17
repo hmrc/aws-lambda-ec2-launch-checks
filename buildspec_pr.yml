@@ -1,4 +1,7 @@
 version: 0.2
+
+### WARNING! This is a generated file and should ONLY be edited in https://github.com/hmrc/telemetry-lambda-resources
+
 env:
   variables:
     MDTP_ENVIRONMENT: "internal-base"

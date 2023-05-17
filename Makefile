@@ -7,6 +7,8 @@ PYTHON_OK := $(shell type -P python)
 PYTHON_REQUIRED := $(shell cat .python-version)
 PYTHON_VERSION ?= $(shell python -V | cut -d' ' -f2)
 
+### WARNING! This is a generated file and should ONLY be edited in https://github.com/hmrc/telemetry-lambda-resources
+
 BUCKET_NAME := telemetry-internal-base-lambda-artifacts
 LAMBDA_NAME := aws-lambda-ec2-launch-checks
 TELEMETRY_INTERNAL_BASE_ACCOUNT_ID := 634456480543

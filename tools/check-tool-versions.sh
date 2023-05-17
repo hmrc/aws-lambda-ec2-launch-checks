@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+
+### WARNING! This is a generated file and should ONLY be edited in https://github.com/hmrc/telemetry-lambda-resources
+
 # Ensure .tool-versions (ASDF) and .<tool>-version (individual version managers) are referencing same version
 
 # Variables
