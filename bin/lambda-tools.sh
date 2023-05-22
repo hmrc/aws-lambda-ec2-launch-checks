@@ -124,8 +124,10 @@ publish_to_cip_s3() {
   export S3_OBJECT_HASH_KEY="${S3_OBJECT_KEY}.base64sha256"
 
   for account in integration qa externaltest staging production ; do
-    aws s3 cp "${PATH_BUILD}/${LAMBDA_ZIP_NAME}" s3://txm-lambda-functions-${account}/log_handler.zip
+    aws s3 cp "${PATH_BUILD}/${LAMBDA_ZIP_NAME}" s3://txm-lambda-functions-${account}/log_handler.zip \
+      --acl=bucket-owner-full-control
     aws s3 cp "${PATH_BUILD}/${LAMBDA_HASH_NAME}" s3://txm-lambda-functions-${account}/log_handler.zip.base64sha256 \
+      --acl=bucket-owner-full-control \
       --content-type text/plain
   done
 
