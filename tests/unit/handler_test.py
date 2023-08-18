@@ -172,7 +172,9 @@ def test_goss_succeeds_completes_lifecycle_action(
         service_response=autoscaling_complete_lifecycle_action_response_valid,
     )
 
-    requests_mock.get(f"http://10.1.3.1:9999/healthz", text=valid_goss_content())
+    requests_mock.get(
+        f"http://10.1.3.1:9876/ec2-launch-checks", text=valid_goss_content()
+    )
 
     # Act
     lambda_handler(asg_event, context)
@@ -195,7 +197,9 @@ def test_that_the_lambda_handler_catches_complete_lifecycle_action_exception(
         service_response=ec2_response,
     )
 
-    requests_mock.get(f"http://10.1.3.1:9999/healthz", text=valid_goss_content())
+    requests_mock.get(
+        f"http://10.1.3.1:9876/ec2-launch-checks", text=valid_goss_content()
+    )
 
     # Set up service error code
     service_error_code_expected = "ResourceContention"
@@ -362,7 +366,7 @@ def test_goss_returns_error_throws_exception(
         service_response=ec2_response,
     )
 
-    requests_mock.get(f"http://10.1.3.1:9999/healthz", status_code=500)
+    requests_mock.get(f"http://10.1.3.1:9876/ec2-launch-checks", status_code=500)
 
     # Act
     with pytest.raises(FailedGossCheckException) as error_message:
@@ -386,7 +390,8 @@ def test_goss_connection_timeout_throws_exception(
     )
 
     requests_mock.get(
-        f"http://10.1.3.1:9999/healthz", exc=requests.exceptions.ConnectTimeout
+        f"http://10.1.3.1:9876/ec2-launch-checks",
+        exc=requests.exceptions.ConnectTimeout,
     )
 
     # Act

@@ -82,14 +82,12 @@ def lambda_handler(event, context):
             f"Incorrect type passed to function: {te}"
         ) from te
 
-    asg_specific_endpoint = "healthz"
     ip_address = get_instance_ip(instance_id)
-    logger.debug(f"ip_address: {ip_address}")
+    url = f"http://{ip_address}:9876/ec2-launch-checks"
 
     goss_test_pass = False
     try:
-        url = f"http://{ip_address}:9999/{asg_specific_endpoint}"
-        logger.debug(f"Calling URL {url}")
+        logger.debug(f"Calling Goss endpoint: {url}")
         endpoint_call = requests.get(url, timeout=30)
         logger.info(f"Goss endpoint. Status Code: {endpoint_call.status_code}")
         logger.debug(f"Goss endpoint. Content: {endpoint_call.text}")
