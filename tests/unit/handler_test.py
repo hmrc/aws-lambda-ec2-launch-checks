@@ -43,7 +43,43 @@ def ec2_response():
                 "Instances": [
                     {
                         "InstanceId": "i-0123a456700123456",
+                        "PrivateIpAddress": "10.1.3.2",
+                        "NetworkInterfaces": [
+                            {
+                                "Attachment": {"DeleteOnTermination": True},
+                                "PrivateIpAddress": "10.1.3.2",
+                            },
+                            {
+                                "Attachment": {"DeleteOnTermination": False},
+                                "PrivateIpAddress": "10.1.3.1",
+                            },
+                            {
+                                "Attachment": {"DeleteOnTermination": True},
+                                "PrivateIpAddress": "10.1.3.3",
+                            },
+                        ],
+                    }
+                ]
+            }
+        ]
+    }
+
+
+@pytest.fixture(scope="function")
+def ec2_single_network_interface_response():
+    return {
+        "Reservations": [
+            {
+                "Instances": [
+                    {
+                        "InstanceId": "i-0123a456700123456",
                         "PrivateIpAddress": "10.1.3.1",
+                        "NetworkInterfaces": [
+                            {
+                                "Attachment": {"DeleteOnTermination": False},
+                                "PrivateIpAddress": "10.1.3.3",
+                            }
+                        ],
                     }
                 ]
             }
@@ -287,6 +323,22 @@ def test_get_instance_ip_valid(ec2_stub, ec2_response):
     ec2_stub.add_response(
         "describe_instances",
         service_response=ec2_response,
+    )
+
+    # Act
+    response = get_instance_ip("i-0123a456700123456")
+
+    # Assert
+    assert response == "10.1.3.1"
+
+
+def test_get_instance_ip_on_instance_with_single_network_interface(
+    ec2_stub, ec2_single_network_interface_response
+):
+    # Arrange
+    ec2_stub.add_response(
+        "describe_instances",
+        service_response=ec2_single_network_interface_response,
     )
 
     # Act

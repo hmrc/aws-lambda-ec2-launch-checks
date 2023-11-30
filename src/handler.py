@@ -32,9 +32,17 @@ def get_instance_ip(instance_id: str) -> str:
 
     logger.debug(f"ec2 describe_instances response: {response}")
     try:
-        private_ip_address = response["Reservations"][0]["Instances"][0][
-            "PrivateIpAddress"
-        ]
+        instance = response["Reservations"][0]["Instances"][0]
+        network_interfaces = instance["NetworkInterfaces"]
+        private_ip_address = instance["PrivateIpAddress"]
+
+        if len(network_interfaces) > 1:
+            logger.debug("Instance has extra network interface attached")
+            for interface in network_interfaces:
+                logger.debug("We will attempt to retrieve persistent private IP")
+                if not interface["Attachment"]["DeleteOnTermination"]:
+                    private_ip_address = interface["PrivateIpAddress"]
+
     except IndexError as e:
         raise FailedToGetPrivateIpAddressException(
             "Instances list index out of range"
