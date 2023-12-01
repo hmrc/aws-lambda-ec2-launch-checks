@@ -170,6 +170,70 @@ def autoscaling_complete_lifecycle_action_response_valid():
     }
 
 
+@pytest.fixture(scope="function")
+def autoscaling_describe_auto_scaling_instances_response_healthy():
+    return {
+        "AutoScalingInstances": [
+            {
+                "InstanceId": "i-0123a456700123456",
+                "AutoScalingGroupName": "telemetry-zookeeper",
+                "AvailabilityZone": "eu-west-2a",
+                "LifecycleState": "InService",
+                "HealthStatus": "HEALTHY",
+                "LaunchTemplate": {
+                    "LaunchTemplateId": "lt-0ec5a01eac20cdd81",
+                    "LaunchTemplateName": "telemetry-zookeeper",
+                    "Version": "1",
+                },
+                "ProtectedFromScaleIn": False,
+            }
+        ],
+        "ResponseMetadata": {
+            "HTTPHeaders": {
+                "content-length": "294",
+                "content-type": "text/xml",
+                "date": "Tue, 23 Feb 2017 06:59:11 GMT",
+                "x-amzn-requestid": "9b08345a-a01z-1234-1234-1234567ef20g",
+            },
+            "HTTPStatusCode": 200,
+            "RequestId": "9b08345a-a01z-1234-1234-1234567ef20g",
+            "RetryAttempts": 0,
+        },
+    }
+
+
+@pytest.fixture(scope="function")
+def autoscaling_describe_auto_scaling_instances_response_unhealthy():
+    return {
+        "AutoScalingInstances": [
+            {
+                "InstanceId": "i-0123a456700123456",
+                "AutoScalingGroupName": "telemetry-zookeeper",
+                "AvailabilityZone": "eu-west-2a",
+                "LifecycleState": "NotInService",
+                "HealthStatus": "UNHEALTHY",
+                "LaunchTemplate": {
+                    "LaunchTemplateId": "lt-0ec5a01eac20cdd81",
+                    "LaunchTemplateName": "telemetry-zookeeper",
+                    "Version": "1",
+                },
+                "ProtectedFromScaleIn": False,
+            }
+        ],
+        "ResponseMetadata": {
+            "HTTPHeaders": {
+                "content-length": "294",
+                "content-type": "text/xml",
+                "date": "Tue, 23 Feb 2017 06:59:11 GMT",
+                "x-amzn-requestid": "9b08345a-a01z-1234-1234-1234567ef20g",
+            },
+            "HTTPStatusCode": 200,
+            "RequestId": "9b08345a-a01z-1234-1234-1234567ef20g",
+            "RetryAttempts": 0,
+        },
+    }
+
+
 @pytest.fixture(autouse=True)
 def initialise_environment_variables():
     os.environ["LOG_LEVEL"] = "DEBUG"
@@ -253,6 +317,95 @@ def test_that_the_lambda_handler_catches_complete_lifecycle_action_exception(
     # Assert
     assert "Caught exception when completing lifecycle action" in str(
         error_message.value
+    )
+
+
+def test_that_the_lambda_handler_handles_complete_lifecycle_action_exception_on_an_in_service_instance(
+    ec2_stub,
+    autoscaling_stub,
+    ec2_response,
+    asg_event,
+    context,
+    autoscaling_complete_lifecycle_action_valid_parameters,
+    autoscaling_describe_auto_scaling_instances_response_healthy,
+    requests_mock,
+):
+    # Arrange
+    ec2_stub.add_response(
+        "describe_instances",
+        service_response=ec2_response,
+    )
+
+    requests_mock.get(
+        f"http://10.1.3.1:9876/ec2-launch-checks", text=valid_goss_content()
+    )
+
+    service_error_code_expected = "ValidationError"
+    autoscaling_stub.add_client_error(
+        "complete_lifecycle_action",
+        expected_params=autoscaling_complete_lifecycle_action_valid_parameters,
+        service_error_code=service_error_code_expected,
+        service_message="No active Lifecycle Action found with instance ID i-0123a456700123456",
+    )
+
+    autoscaling_stub.add_response(
+        method="describe_auto_scaling_instances",
+        service_response=autoscaling_describe_auto_scaling_instances_response_healthy,
+    )
+
+    lambda_handler(asg_event, context)
+    # Act
+    # with pytest.raises(FailedToCompleteLifecycleActionException) as error_message:
+    #     lambda_handler(asg_event, context)
+
+    # Assert
+    # assert "Caught exception when completing lifecycle action" in str(
+    #     error_message.value
+    # )
+
+
+def test_that_the_lambda_handler_catches_complete_lifecycle_action_exception_on_an_unhealthy_instance(
+    ec2_stub,
+    autoscaling_stub,
+    ec2_response,
+    asg_event,
+    context,
+    autoscaling_complete_lifecycle_action_valid_parameters,
+    autoscaling_describe_auto_scaling_instances_response_unhealthy,
+    requests_mock,
+):
+    # Arrange
+    ec2_stub.add_response(
+        "describe_instances",
+        service_response=ec2_response,
+    )
+
+    requests_mock.get(
+        f"http://10.1.3.1:9876/ec2-launch-checks", text=valid_goss_content()
+    )
+
+    # Set up service error code
+    service_error_code_expected = "ValidationError"
+    autoscaling_stub.add_client_error(
+        "complete_lifecycle_action",
+        expected_params=autoscaling_complete_lifecycle_action_valid_parameters,
+        service_error_code=service_error_code_expected,
+        service_message="No active Lifecycle Action found with instance ID i-0123a456700123456",
+    )
+
+    autoscaling_stub.add_response(
+        method="describe_auto_scaling_instances",
+        service_response=autoscaling_describe_auto_scaling_instances_response_unhealthy,
+    )
+
+    # Act
+    with pytest.raises(FailedToCompleteLifecycleActionException) as error_message:
+        lambda_handler(asg_event, context)
+
+    # Assert
+    assert (
+        "Failed to mark the lifecycle as complete or confirm i-0123a456700123456 instance state"
+        in str(error_message.value)
     )
 
 

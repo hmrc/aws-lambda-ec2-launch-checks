@@ -126,6 +126,43 @@ def lambda_handler(event, context):
             LifecycleHookName=lifecycle_hook_name,
         )
         logger.debug(f"Response of complete_lifecycle_action: {response}")
+
+    except exceptions.ClientError as e:
+        err_code = e.response["Error"]["Code"]
+        err_message = e.response["Error"]["Message"]
+        if err_code == "ValidationError" and err_message.lower().startswith(
+            "no active lifecycle action found"
+        ):
+            # Handle those instances become healthy and in service quickly
+            is_instance_in_service = False
+            logger.warning(err_message)
+            logger.debug(f"Checking {instance_id} instance lifecycle state")
+            response = autoscaling_client.describe_auto_scaling_instances(
+                InstanceIds=[instance_id]
+            )
+
+            if len(response["AutoScalingInstances"]) == 1:
+                instance = response["AutoScalingInstances"][0]
+                if (
+                    instance["InstanceId"] == instance_id
+                    and instance["LifecycleState"] == "InService"
+                    and instance["HealthStatus"] == "HEALTHY"
+                ):
+                    is_instance_in_service = True
+                    logger.info(
+                        f"Checked {instance_id} instance and it is healthy and in service"
+                    )
+                    logger.debug(instance)
+
+            if not is_instance_in_service:
+                message = f"Failed to mark the lifecycle as complete or confirm {instance_id} instance state"
+                logger.error(message)
+                logger.debug(response)
+                raise FailedToCompleteLifecycleActionException(message) from e
+        else:
+            raise FailedToCompleteLifecycleActionException(
+                "Caught exception when completing lifecycle action"
+            ) from e
     except Exception as e:
         logger.error(e)
         raise FailedToCompleteLifecycleActionException(
