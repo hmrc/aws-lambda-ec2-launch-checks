@@ -29,8 +29,9 @@ source ./"${VENV_NAME}"/bin/activate
 # The platform argument ensures greater compatibility with AWS Lambda Runtimes
 # https://repost.aws/knowledge-center/lambda-python-package-compatible
 # https://github.com/pypa/manylinux - The chosen platform will be EOL June 2024
-pip install --upgrade pip
-pip install --requirement "${REQUIREMENTS_FILE}" \
+pip install --index-url https://artefacts.tax.service.gov.uk/artifactory/api/pypi/pips/simple --upgrade pip
+pip install --index-url https://artefacts.tax.service.gov.uk/artifactory/api/pypi/pips/simple \
+            --requirement "${REQUIREMENTS_FILE}" \
             --platform manylinux2014_x86_64 \
             --target=./${VENV_NAME}/lib/python3.9/site-packages \
             --implementation cp \
