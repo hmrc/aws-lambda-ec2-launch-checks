@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/hmrc/telemetry-lambda-resources",
-  "commit": "e9a360e008f1140f91b3d8d4a51908c1fa23026a",
+  "commit": "6cdff93ac584fdc713218789ab57f0da599f897a",
   "context": {
     "cookiecutter": {
       "bandit_skip_tests": "",
