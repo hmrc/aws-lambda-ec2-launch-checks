@@ -40,7 +40,10 @@ def get_instance_ip(instance_id: str) -> str:
             logger.debug("Instance has extra network interface attached")
             for interface in network_interfaces:
                 logger.debug("We will attempt to retrieve persistent private IP")
-                if not interface["Attachment"]["DeleteOnTermination"]:
+                if (
+                    interface["InterfaceType"] == "interface"
+                    and not interface["Attachment"]["DeleteOnTermination"]
+                ):
                     private_ip_address = interface["PrivateIpAddress"]
 
     except IndexError as e:
