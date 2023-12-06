@@ -48,14 +48,22 @@ def ec2_response():
                             {
                                 "Attachment": {"DeleteOnTermination": True},
                                 "PrivateIpAddress": "10.1.3.2",
+                                "InterfaceType": "interface",
                             },
                             {
                                 "Attachment": {"DeleteOnTermination": False},
                                 "PrivateIpAddress": "10.1.3.1",
+                                "InterfaceType": "trunk",
+                            },
+                            {
+                                "Attachment": {"DeleteOnTermination": False},
+                                "PrivateIpAddress": "10.1.3.111",
+                                "InterfaceType": "interface",
                             },
                             {
                                 "Attachment": {"DeleteOnTermination": True},
                                 "PrivateIpAddress": "10.1.3.3",
+                                "InterfaceType": "interface",
                             },
                         ],
                     }
@@ -73,11 +81,12 @@ def ec2_single_network_interface_response():
                 "Instances": [
                     {
                         "InstanceId": "i-0123a456700123456",
-                        "PrivateIpAddress": "10.1.3.1",
+                        "PrivateIpAddress": "10.1.3.111",
                         "NetworkInterfaces": [
                             {
                                 "Attachment": {"DeleteOnTermination": False},
                                 "PrivateIpAddress": "10.1.3.3",
+                                "InterfaceType": "interface",
                             }
                         ],
                     }
@@ -209,7 +218,7 @@ def test_goss_succeeds_completes_lifecycle_action(
     )
 
     requests_mock.get(
-        f"http://10.1.3.1:9876/ec2-launch-checks", text=valid_goss_content()
+        f"http://10.1.3.111:9876/ec2-launch-checks", text=valid_goss_content()
     )
 
     # Act
@@ -234,7 +243,7 @@ def test_that_the_lambda_handler_catches_complete_lifecycle_action_exception(
     )
 
     requests_mock.get(
-        f"http://10.1.3.1:9876/ec2-launch-checks", text=valid_goss_content()
+        f"http://10.1.3.111:9876/ec2-launch-checks", text=valid_goss_content()
     )
 
     # Set up service error code
@@ -329,7 +338,7 @@ def test_get_instance_ip_valid(ec2_stub, ec2_response):
     response = get_instance_ip("i-0123a456700123456")
 
     # Assert
-    assert response == "10.1.3.1"
+    assert response == "10.1.3.111"
 
 
 def test_get_instance_ip_on_instance_with_single_network_interface(
@@ -345,7 +354,7 @@ def test_get_instance_ip_on_instance_with_single_network_interface(
     response = get_instance_ip("i-0123a456700123456")
 
     # Assert
-    assert response == "10.1.3.1"
+    assert response == "10.1.3.111"
 
 
 def test_get_instance_ip_raises_clienterror(
@@ -418,7 +427,7 @@ def test_goss_returns_error_throws_exception(
         service_response=ec2_response,
     )
 
-    requests_mock.get(f"http://10.1.3.1:9876/ec2-launch-checks", status_code=500)
+    requests_mock.get(f"http://10.1.3.111:9876/ec2-launch-checks", status_code=500)
 
     # Act
     with pytest.raises(FailedGossCheckException) as error_message:
@@ -442,7 +451,7 @@ def test_goss_connection_timeout_throws_exception(
     )
 
     requests_mock.get(
-        f"http://10.1.3.1:9876/ec2-launch-checks",
+        f"http://10.1.3.111:9876/ec2-launch-checks",
         exc=requests.exceptions.ConnectTimeout,
     )
 
