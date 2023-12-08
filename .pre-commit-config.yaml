@@ -59,7 +59,7 @@ repos:
         args: [-ll, -c, .bandit]
         language_version: python3
   - repo: https://github.com/hmrc/security-git-hooks
-    rev: release/1.9.0
+    rev: release/1.10.0
     hooks:
       - id: secrets_filecontent
         name: Checking staged files for sensitive content
