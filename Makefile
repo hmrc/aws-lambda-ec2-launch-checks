@@ -4,8 +4,8 @@ POETRY_PATH := $(shell poetry env info --path)
 POETRY_REQUIRED := $(shell cat .poetry-version)
 POETRY_VIRTUALENVS_IN_PROJECT ?= true
 PYTHON_OK := $(shell type -P python)
-PYTHON_REQUIRED := $(shell cat .python-version)
-PYTHON_VERSION ?= $(shell python -V | cut -d' ' -f2)
+PYTHON_REQUIRED := $(shell cat .python-version | cut -d'.' -f1,2')
+PYTHON_VERSION ?= $(shell python -V | cut -d' ' -f2 | cut -d'.' -f1,2')
 
 ### WARNING! This is a generated file and should ONLY be edited in https://github.com/hmrc/telemetry-lambda-resources
 
@@ -35,7 +35,7 @@ check_poetry: check_python ## Check Poetry installation
     ifeq ('$(POETRY_OK)','')
 	    $(error package 'poetry' not found!)
     else
-	    @echo Found Poetry ${POETRY_REQUIRED}
+	    @echo Found `poetry --version`
     endif
 .PHONY: check_poetry
 
@@ -48,7 +48,7 @@ check_python: ## Check Python installation
     ifneq ('$(PYTHON_REQUIRED)','$(PYTHON_VERSION)')
 	    $(error incorrect version of python found: '${PYTHON_VERSION}'. Expected '${PYTHON_REQUIRED}'!)
     else
-	    @echo Found Python ${PYTHON_REQUIRED}
+	    @echo Found `python --version`
     endif
 .PHONY: check_python
 

@@ -1,11 +1,6 @@
 repos:
   - repo: local
     hooks:
-      - id: validate-tool-versions
-        name: Validate tool versions
-        entry: ./tools/check-tool-versions.sh
-        language: script
-        pass_filenames: false
       - id: validate-cruft-up-to-date
         name: Validate Cruft up-to-date
         entry: cruft check
