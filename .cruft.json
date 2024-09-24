@@ -1,6 +1,6 @@
 {
   "template": "https://github.com/hmrc/telemetry-lambda-resources",
-  "commit": "0f3fa087b7197f72c9e732143d6e165c545df4f9",
+  "commit": "0f99c309f84f1713c819d21e68356e4b59f3cc56",
   "context": {
     "cookiecutter": {
       "bandit_skip_tests": "",
@@ -11,7 +11,7 @@
       "lambda_name": "aws-lambda-ec2-launch-checks",
       "lambda_name_formatted": "aws-lambda-ec2-launch-checks",
       "python_version": "3.9",
-      "python_version_full": "3.9.15",
+      "python_version_full": "3.9.20",
       "unit_test_style": "pytest",
       "_template": "https://github.com/hmrc/telemetry-lambda-resources"
     }
