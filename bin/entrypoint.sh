@@ -29,14 +29,18 @@ source ./"${VENV_NAME}"/bin/activate
 # https://repost.aws/knowledge-center/lambda-python-package-compatible
 # https://github.com/pypa/manylinux - The chosen platform will be EOL June 2024
 pip install --index-url https://artefacts.tax.service.gov.uk/artifactory/api/pypi/pips/simple --upgrade pip
+
+# force reinstall cryptography to ensure it uses rust utils
+pip install --index-url https://artefacts.tax.service.gov.uk/artifactory/api/pypi/pips/simple --force-reinstall cryptography
+
 pip install --index-url https://artefacts.tax.service.gov.uk/artifactory/api/pypi/pips/simple \
             --requirement "${REQUIREMENTS_FILE}" \
             --platform manylinux2014_x86_64 \
-            --target=./${VENV_NAME}/lib/python3.9/site-packages \
+            --target=./${VENV_NAME}/lib/python3.14/site-packages \
             --implementation cp \
             --only-binary=:all:
 
 # Make the binary location specified in --target above, available to PATH
-export PATH="$PATH:./${VENV_NAME}/lib/python3.9/site-packages/bin"
+export PATH="$PATH:./${VENV_NAME}/lib/python3.14/site-packages/bin"
 
 exec "$@"

@@ -1,18 +1,6 @@
 repos:
-  - repo: local
-    hooks:
-      - id: validate-cruft-up-to-date
-        name: Validate Cruft up-to-date
-        entry: cruft check
-        language: system
-        pass_filenames: false
-      - id: validate-cruft-no-diff
-        name: Validate Cruft drift
-        entry: cruft diff --exit-code
-        language: system
-        pass_filenames: false
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.3.0
+    rev: v6.0.0
     hooks:
       - id: no-commit-to-branch
         args: [--branch, develop, --branch, main]
@@ -37,24 +25,24 @@ repos:
         name: Fix missing end-of-file line returns
         exclude: repository.yaml|tests/unit/test-data/
   - repo: https://github.com/asottile/reorder_python_imports
-    rev: v3.8.5
+    rev: v3.16.0
     hooks:
       - id: reorder-python-imports
         name: Reorder Python imports
   - repo: https://github.com/python/black
-    rev: 22.10.0
+    rev: 26.1.0
     hooks:
       - id: black
         name: Run Black
   - repo: https://github.com/PyCQA/bandit
-    rev: 1.7.4
+    rev: 1.9.3
     hooks:
       - id: bandit
         name: Run Bandit
         args: [-ll, -c, .bandit]
         language_version: python3
   - repo: https://github.com/hmrc/security-git-hooks
-    rev: release/1.10.0
+    rev: release/1.15.0
     hooks:
       - id: secrets_filecontent
         name: Checking staged files for sensitive content
