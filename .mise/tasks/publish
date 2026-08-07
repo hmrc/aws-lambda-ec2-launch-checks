@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+#MISE description="Publish both the zip and checksum files to S3"
+#MISE depends=["package"]
+
+VERSION=$(cat .version)
+
+openssl dgst -sha256 -binary "${MISE_CONFIG_ROOT}/build/package.zip" | openssl enc -base64 > "${MISE_CONFIG_ROOT}/build/package.zip.base64sha256"
+
+aws s3 cp "${MISE_CONFIG_ROOT}/build/package.zip" "${S3_ADDRESS}/${PACKAGE_NAME}.${VERSION}.zip" --acl=bucket-owner-full-control
+aws s3 cp "${MISE_CONFIG_ROOT}/build/package.zip.base64sha256" "${S3_ADDRESS}/${PACKAGE_NAME}.${VERSION}.zip.base64sha256" --content-type text/plain --acl=bucket-owner-full-control

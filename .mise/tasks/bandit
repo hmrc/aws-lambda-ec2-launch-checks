@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Run bandit against environment_builder python code (ignoring low severity)"
+#MISE depends=["setup"]
+
+uv run bandit -r ./src

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Prepare a release to .version"
+
+uv run prepare-release

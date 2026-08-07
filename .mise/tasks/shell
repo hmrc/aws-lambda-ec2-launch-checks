@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+#MISE description="Open a shell terminal to the test and package Docker container"
+#MISE depends=["setup"]
+#MISE raw=true
+
+PYTHON_VERSION=$(python --version | awk '{print $2}')
+VERSION=$(cat .version)
+export IMAGE_VERSION=${VERSION}
+
+uv export --format requirements.txt \
+          --index-url "${PIP_INDEX_URL}" \
+          --no-annotate \
+          --no-hashes \
+          --no-header \
+          --output-file "requirements-tests.txt" \
+          --quiet
+
+docker run --rm \
+           --interactive \
+           --tty \
+           --platform 'linux/amd64' \
+           --volume "${MISE_CONFIG_ROOT}:/data" \
+           --workdir /data \
+           --env PIP_INDEX_URL="${PIP_INDEX_URL}" \
+           --env REQUIREMENTS_FILE="requirements-tests.txt" \
+           --env VENV_NAME="venv_shell" \
+           "${DOCKER_REPO}/python:${PYTHON_VERSION}-slim-bookworm" /data/bin/entrypoint.sh /bin/bash

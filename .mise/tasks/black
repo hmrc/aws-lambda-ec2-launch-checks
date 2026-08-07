@@ -1,0 +1,11 @@
+#!/usr/bin/env bash
+#MISE description="Run black against python code"
+#MISE depends=["setup"]
+
+#USAGE flag "-c --check" help="Show changes black would make without making them"
+
+if [ "${usage_check:-false}" = "true" ]; then
+  uv run black --check --diff ./src ./tests
+else
+  uv run black --fast ./src ./tests
+fi
