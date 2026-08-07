@@ -1,0 +1,18 @@
+[env]
+DOCKER_REPO="dockerhub.tax.service.gov.uk"
+MDTP_ENVIRONMENT="internal-base"
+PACKAGE_NAME="aws-lambda-ec2-launch-checks"
+PIP_INDEX_URL="https://artefacts.tax.service.gov.uk/artifactory/api/pypi/pips/simple"
+S3_ADDRESS="s3://telemetry-{{env.MDTP_ENVIRONMENT}}-lambda-artifacts/build-{{env.PACKAGE_NAME}}"
+TELEMETRY_INTERNAL_BASE_ACCOUNT_ID=634456480543
+UV_DEFAULT_INDEX="https://artefacts.tax.service.gov.uk/artifactory/api/pypi/pips/simple"
+_.file = { path = ".env", redact = true }
+_.python.venv = { path = ".venv", create = true }
+
+[tools]
+python     = "3.14.6"
+pre-commit = "latest"
+uv         = "latest"
+
+[settings]
+python.uv_venv_auto = "create|source"

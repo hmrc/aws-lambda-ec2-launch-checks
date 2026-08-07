@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#MISE description="Cut a release from .version and push appropriate tags to GitHub - only after a successful publish"
+
+uv run cut-release

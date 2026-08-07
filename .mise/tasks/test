@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+#MISE description="Prepare dependencies and run unit tests in a Docker environment"
+#MISE depends=["setup", "bandit", "black"]
+#MISE raw=true
+
+PYTHON_VERSION=$(python --version | awk '{print $2}')
+PYTHON_VERSION_LIB=$(cut -d '.' -f 1,2 <<< "${PYTHON_VERSION}")
+
+uv export --format requirements.txt \
+          --index-url "${PIP_INDEX_URL}" \
+          --no-annotate \
+          --no-hashes \
+          --no-header \
+          --output-file "requirements-tests.txt" \
+          --quiet
+
+docker run --rm \
+           --tty \
+           --platform 'linux/amd64' \
+           --volume "${MISE_CONFIG_ROOT}:/data" \
+           --workdir /data \
+           --env PIP_INDEX_URL="${PIP_INDEX_URL}" \
+           --env PYTHON_VERSION_LIB="${PYTHON_VERSION_LIB}" \
+           --env REQUIREMENTS_FILE="requirements-tests.txt" \
+           --env VENV_NAME="venv_test" \
+           "${DOCKER_REPO}/python:${PYTHON_VERSION}-slim-bookworm" /data/bin/entrypoint.sh /data/bin/test.sh

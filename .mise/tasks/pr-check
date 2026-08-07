@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Run commands specific to the CodeBuild PR requirements"
+#MISE env={SKIP="no-commit-to-branch,doctoc"}
+#MISE raw=true
+
+uv run pre-commit run --all-files --verbose

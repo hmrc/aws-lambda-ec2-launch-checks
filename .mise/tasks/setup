@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+#MISE description="Setup virtualenv & dependencies using uv and set-up the git hook scripts"
+#MISE quiet=true
+
+uv venv --allow-existing
+uv sync
+uv lock --check
+uv pip check

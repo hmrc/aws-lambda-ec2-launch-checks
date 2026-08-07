@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+#MISE description="Print out environment variables and Python details for debug purposes"
+
+env | sort
+which python
+python --version --version

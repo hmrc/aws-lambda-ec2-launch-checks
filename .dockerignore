@@ -3,5 +3,6 @@
 .venv/
 build/
 venv*
+.env
 .envrc
 .version
