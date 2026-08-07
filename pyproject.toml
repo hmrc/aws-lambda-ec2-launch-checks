@@ -40,11 +40,6 @@ source = ["./src"]
 [tool.coverage.report]
 fail_under = 70
 
-[[tool.uv.index]]
-name = "artifactory"
-url = "https://artefacts.tax.service.gov.uk/artifactory/api/pypi/pips/simple"
-default = true
-
 [tool.pytest.ini_options]
 log_cli = true
 log_cli_date_format = "%Y-%m-%d %H:%M:%S"
@@ -70,6 +65,11 @@ select = ["E", "W"]
 [tool.uv]
 package = false
 default-groups = "all"
+
+[[tool.uv.index]]
+name = "artifactory"
+url = "https://artefacts.tax.service.gov.uk/artifactory/api/pypi/pips/simple"
+default = true
 
 [build-system]
 requires = ["uv_build>=0.12.1,<0.13.0"]
